@@ -2,7 +2,7 @@ name: 'Terraform Deployment'
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "feature/github_cicd" ]
   pull_request:
 
 permissions:
