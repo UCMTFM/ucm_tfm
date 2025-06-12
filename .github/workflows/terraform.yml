@@ -56,5 +56,5 @@ jobs:
         TF_VAR_group_members: ${{vars.TF_VAR_GROUP_MEMBERS}}
 
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terraform apply -auto-approve -input=false
