@@ -5,9 +5,11 @@ on:
     branches: [ "feature/github_cicd" ]
     paths:
       - 'infrastructure/**'
+      - '.github/workflows'
   pull_request:
     paths:
       - 'infrastructure/**'
+      - '.github/workflows'
 
 permissions:
   contents: read
@@ -53,7 +55,7 @@ jobs:
     - name: Terraform Plan
       run: terraform plan -input=false
       env:
-        TF_VAR_group_members=${{vars.TF_VAR_group_members}}
+        TF_VAR_group_members: ${{vars.TF_VAR_group_members}}
 
     - name: Terraform Apply
       if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
