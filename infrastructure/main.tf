@@ -24,12 +24,12 @@ resource "azuread_group" "admins" {
 }
 
 data "azuread_user" "members" {
-  for_each = toset(var.group_members)
+  for_each            = toset(var.group_members)
   user_principal_name = each.key
 }
 
 resource "azuread_group_member" "members" {
-  for_each = data.azuread_user.members
+  for_each         = data.azuread_user.members
   group_object_id  = azuread_group.admins.object_id
   member_object_id = each.value.object_id
 }
