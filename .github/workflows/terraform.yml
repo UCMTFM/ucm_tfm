@@ -19,13 +19,12 @@ jobs:
         shell: bash
 
     permissions:
+      contents: read
       id-token: write # Require write permission to Fetch an Azure OIDC token.
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
