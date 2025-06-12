@@ -14,10 +14,10 @@ terraform {
     storage_account_name = "statfmmbeterraformstate"
     container_name       = "tfstate"
     key                  = "terraform.tfstate"
-  } 
+  }
 }
 
 provider "azurerm" {
   features {}
-  resource_provider_registrations = "none" 
+  resource_provider_registrations = "none"
 }

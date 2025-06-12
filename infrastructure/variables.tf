@@ -17,5 +17,5 @@ variable "tags" {
 
 variable "group_members" {
   description = "List of user principal names to include in the AAD group"
-  type        = list(string) 
+  type        = list(string)
 }
