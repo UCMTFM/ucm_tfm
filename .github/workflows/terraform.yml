@@ -2,7 +2,7 @@ name: 'Terraform Deployment'
 
 on:
   push:
-    branches: [ "feature/github_cicd" ]
+    branches: [ "main" ]
     paths:
       - 'infrastructure/**'
       - '.github/workflows/**'
