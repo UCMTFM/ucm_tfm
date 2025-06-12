@@ -55,6 +55,15 @@ jobs:
         ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         TF_VAR_group_members: ${{vars.TF_VAR_GROUP_MEMBERS}}
 
+    - name: Await Manual Approval
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ github.TOKEN }}
+        approvers: jonathan5p, camilocossio11
+        minimum-approvals: 1
+        issue-title: "Manual Approval Required for Terraform Apply"
+        issue-body: "Please approve or deny the deployment."
+
     - name: Terraform Apply
       if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
       run: terraform apply -auto-approve -input=false
