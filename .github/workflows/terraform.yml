@@ -59,7 +59,7 @@ jobs:
       uses: trstringer/manual-approval@v1
       with:
         secret: ${{ github.TOKEN }}
-        approvers: jonathan5p, camilocossio11
+        approvers: admins
         minimum-approvals: 1
         issue-title: "Manual Approval Required for Terraform Apply"
         issue-body: "Please approve or deny the deployment."
