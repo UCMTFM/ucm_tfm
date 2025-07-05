@@ -5,6 +5,7 @@ locals {
       project = var.project
     }
   )
+  member_object_ids = [for u in data.azuread_user.members : u.value.object_id]
 }
 
 
@@ -82,4 +83,26 @@ module "databricks_workspace" {
   tags                = local.tags
 }
 
+# Databricks Access Connector
+module "databricks_access_connector" {
+  source              = "./modules/databricks_access_connector"
+  prefix              = var.project
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  tags                = local.tags
+  storage_account_id  = module.lakehouse_storage.id
+}
 
+# Key Vault
+
+module "key_vault" {
+  source                 = "./modules/key_vault"
+  name                   = "lakehouse"
+  prefix                 = var.project
+  resource_group_name    = module.resource_group.name
+  location               = module.resource_group.location
+  sku                    = "standard"
+  tags                   = local.tags
+  member_ids             = local.member_object_ids
+  stg_account_access_key = module.lakehouse_storage.primary_access_key
+}
