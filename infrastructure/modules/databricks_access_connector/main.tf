@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    databricks = {
+      source  = "databricks/databricks"
+      version = "1.30.0"
+    }
+  }
+}
+
 resource "azurerm_databricks_access_connector" "databricks_connector" {
   name                = "adb-access-connector-${var.prefix}"
   resource_group_name = var.resource_group_name
