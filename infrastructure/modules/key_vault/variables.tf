@@ -33,3 +33,8 @@ variable "stg_account_access_key" {
   description = "Primary access key for the storage account, used to create a Key Vault secret"
   sensitive   = true
 }
+
+variable "access_connector_id" {
+  type        = string
+  description = "ID of the Databricks Access Connector"
+}

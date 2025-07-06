@@ -5,7 +5,7 @@ locals {
       project = var.project
     }
   )
-  member_object_ids = [for u in data.azuread_user.members : u.value.object_id]
+  member_object_ids = [for _, u in data.azuread_user.members : u.object_id]
 }
 
 
@@ -105,4 +105,5 @@ module "key_vault" {
   tags                   = local.tags
   member_ids             = local.member_object_ids
   stg_account_access_key = module.lakehouse_storage.primary_access_key
+  access_connector_id    = module.databricks_access_connector.id
 }

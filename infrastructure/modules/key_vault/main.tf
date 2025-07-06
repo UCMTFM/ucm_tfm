@@ -1,9 +1,5 @@
 data "azurerm_client_config" "current" {}
 
-data "azuread_service_principal" "databricks" {
-  display_name = "AzureDatabricks"
-}
-
 resource "azurerm_key_vault" "kv" {
   name                        = "akv${var.prefix}${var.name}"
   location                    = var.location
@@ -22,7 +18,7 @@ resource "azurerm_role_assignment" "secrets_officer_members" {
 }
 
 resource "azurerm_role_assignment" "secrets_officer_databricks" {
-  principal_id         = data.azuread_service_principal.databricks.object_id
+  principal_id         = var.access_connector_id
   role_definition_name = "Key Vault Secrets Officer"
   scope                = azurerm_key_vault.kv.id
 }
