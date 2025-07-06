@@ -1,6 +1,6 @@
-variable "cluster_name" {
+variable "prefix" {
   type        = string
-  description = "Name of the Databricks cluster"
+  description = "Name of the project, used as a prefix for resources"
 }
 
 variable "spark_version" {
@@ -18,10 +18,10 @@ variable "idle_minutes" {
   description = "Number of idle minutes before the cluster is terminated"
 }
 
-# variable "user_email" {
-#   type        = string
-#   description = "Email of the user who will own the cluster"
-# }
+variable "num_workers" {
+  type        = number
+  description = "Number of workers for the Databricks cluster"
+}
 
 variable "workspace_url" {
   type        = string

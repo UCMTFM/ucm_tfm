@@ -22,3 +22,8 @@ variable "location" {
 variable "tags" {
   type = map(string)
 }
+
+variable "azure_client_id" {
+  description = "Client ID for the Azure AD application"
+  type        = string
+}

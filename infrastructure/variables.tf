@@ -19,3 +19,8 @@ variable "group_members" {
   description = "List of user principal names to include in the AAD group"
   type        = list(string)
 }
+
+variable "client_id" {
+  description = "Client ID for the Azure AD application"
+  type        = string
+}

@@ -92,19 +92,19 @@ module "databricks_workspace" {
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   tags                = local.tags
+  azure_client_id     = var.client_id
 }
 
 # Databricks Clusters
 
 module "personal_compute" {
   source = "./modules/databricks_clusters"
-
-  cluster_name      = "Personal Compute"
-  spark_version     = "15.4.x-scala2.12"
-  node_type_id      = "Standard_DS3_v2"
-  idle_minutes      = 20
-  # user_email        = "camilocossioalzate2001@gmail.com"
-  workspace_url     = module.databricks_workspace.workspace_url
+  prefix        = var.project
+  spark_version = "15.4.x-scala2.12"
+  node_type_id  = "Standard_DS3_v2"
+  idle_minutes  = 15
+  num_workers   = 1
+  workspace_url = module.databricks_workspace.workspace_url
 }
 
 # Databricks Access Connector
