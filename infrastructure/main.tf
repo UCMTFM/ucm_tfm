@@ -103,7 +103,7 @@ module "personal_compute" {
   spark_version     = "15.4.x-scala2.12"
   node_type_id      = "Standard_DS3_v2"
   idle_minutes      = 20
-  user_email        = "camilocossioalzate2001@gmail.com"
+  # user_email        = "camilocossioalzate2001@gmail.com"
   workspace_url     = module.databricks_workspace.workspace_url
 }
 
