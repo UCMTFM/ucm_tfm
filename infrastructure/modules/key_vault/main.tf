@@ -20,16 +20,16 @@ resource "azurerm_key_vault_access_policy" "terraform" {
   ]
 }
 
-resource "azurerm_role_assignment" "secrets_officer_members" {
+resource "azurerm_role_assignment" "secrets_user_members" {
   for_each             = toset(var.member_ids)
   principal_id         = each.key
-  role_definition_name = "Key Vault Secrets Officer"
+  role_definition_name = "Key Vault Secrets User"
   scope                = azurerm_key_vault.kv.id
 }
 
-resource "azurerm_role_assignment" "secrets_officer_databricks" {
+resource "azurerm_role_assignment" "secrets_user_databricks" {
   principal_id         = var.access_connector_id
-  role_definition_name = "Key Vault Secrets Officer"
+  role_definition_name = "Key Vault Secrets User"
   scope                = azurerm_key_vault.kv.id
 }
 

@@ -18,10 +18,10 @@ variable "idle_minutes" {
   description = "Number of idle minutes before the cluster is terminated"
 }
 
-variable "user_email" {
-  type        = string
-  description = "Email of the user who will own the cluster"
-}
+# variable "user_email" {
+#   type        = string
+#   description = "Email of the user who will own the cluster"
+# }
 
 variable "workspace_url" {
   type        = string
