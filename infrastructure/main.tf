@@ -109,7 +109,6 @@ module "databricks_access_connector" {
 
 module "key_vault" {
   source                    = "./modules/key_vault"
-  name                      = "lakehouse"
   prefix                    = var.project
   resource_group_name       = module.resource_group.name
   location                  = module.resource_group.location
