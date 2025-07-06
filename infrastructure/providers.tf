@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "4.32.0"
+      version = "3.117.1"
     }
     azuread = {
       source  = "hashicorp/azuread"
@@ -23,9 +23,10 @@ terraform {
 }
 
 provider "azurerm" {
-  features {} 
+  features {}
 }
 
 provider "databricks" {
   alias = "default"
 }
+

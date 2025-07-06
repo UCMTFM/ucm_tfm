@@ -99,12 +99,12 @@ module "databricks_workspace" {
 module "personal_compute" {
   source = "./modules/databricks_clusters"
 
-  cluster_name      = "Personal Compute"
-  spark_version     = "15.4.x-scala2.12"
-  node_type_id      = "Standard_DS3_v2"
-  idle_minutes      = 20
-  user_email        = "camilocossioalzate2001@gmail.com"
-  workspace_url     = module.databricks_workspace.workspace_url
+  cluster_name  = "Personal Compute"
+  spark_version = "15.4.x-scala2.12"
+  node_type_id  = "Standard_DS3_v2"
+  idle_minutes  = 20
+  user_email    = "camilocossioalzate2001@gmail.com"
+  workspace_url = module.databricks_workspace.workspace_url
 }
 
 # Databricks Access Connector
@@ -144,4 +144,17 @@ module "unity_catalog" {
   lakehouse_storage_account_name = module.lakehouse_storage.account_name
   key_vault_id                   = module.key_vault.key_vault_id
   key_vault_uri                  = module.key_vault.key_vault_uri
+}
+
+# Azure k8s Cluster
+
+module "aks" {
+  source = "./modules/aks"
+  name   = "lakehousecluster"
+  prefix = var.project
+
+  location            = module.resource_group.location
+  resource_group_name = module.resource_group.name
+
+  tags = local.tags
 }
