@@ -10,6 +10,16 @@ resource "azurerm_key_vault" "kv" {
   soft_delete_retention_days  = 30
 }
 
+resource "azurerm_key_vault_access_policy" "terraform" {
+  key_vault_id = azurerm_key_vault.kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_client_config.current.object_id
+
+  secret_permissions = [
+    "get", "set", "list"
+  ]
+}
+
 resource "azurerm_role_assignment" "secrets_officer_members" {
   for_each             = toset(var.member_ids)
   principal_id         = each.key
