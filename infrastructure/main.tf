@@ -94,6 +94,19 @@ module "databricks_workspace" {
   tags                = local.tags
 }
 
+# Databricks Clusters
+
+module "personal_compute" {
+  source = "./modules/databricks_clusters"
+
+  cluster_name      = "Personal Compute"
+  spark_version     = "15.4.x-scala2.12"
+  node_type_id      = "Standard_DS3_v2"
+  idle_minutes      = 20
+  user_email        = "camilocossioalzate2001@gmail.com"
+  workspace_url     = module.databricks_workspace.workspace_url
+}
+
 # Databricks Access Connector
 
 module "databricks_access_connector" {
@@ -118,4 +131,17 @@ module "key_vault" {
   lakehouse_stg_account_key = module.lakehouse_storage.primary_access_key
   landing_stg_account_key   = module.landing_storage.primary_access_key
   access_connector_id       = module.databricks_access_connector.id
+}
+
+# Unity Catalog
+
+module "unity_catalog" {
+  source                         = "./modules/unity_catalog"
+  databricks_host                = module.databricks_workspace.workspace_url
+  prefix                         = var.project
+  access_connector_id            = module.databricks_access_connector.id
+  lakehouse_external_layers      = ["bronze", "silver", "gold"]
+  lakehouse_storage_account_name = module.lakehouse_storage.account_name
+  key_vault_id                   = module.key_vault.key_vault_id
+  key_vault_uri                  = module.key_vault.key_vault_uri
 }

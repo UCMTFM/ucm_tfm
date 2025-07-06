@@ -20,3 +20,7 @@ terraform {
 provider "azurerm" {
   features {} 
 }
+
+provider "databricks" {
+  alias = "default"
+}
