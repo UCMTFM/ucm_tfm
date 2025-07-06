@@ -2,6 +2,10 @@ variable "databricks_host" {
   type = string
 }
 
+variable "workspace_resource_id" {
+  type = string
+}
+
 variable "prefix" {
   type = string
 }

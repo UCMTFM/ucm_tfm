@@ -10,6 +10,7 @@ terraform {
 provider "databricks" {
     alias = "default"
     host  = var.databricks_host
+    azure_workspace_resource_id = var.workspace_resource_id
 }
 
 resource "databricks_storage_credential" "access_connector_credential" {

@@ -17,8 +17,6 @@ resource "databricks_cluster" "personal_camilo" {
   node_type_id            = var.node_type_id
   autotermination_minutes = var.idle_minutes
   num_workers             = 0
-  single_user_name        = var.user_email
-  data_security_mode      = "SINGLE_USER"
 
   custom_tags = {
     ResourceClass = "SingleNode"
