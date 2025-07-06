@@ -28,7 +28,13 @@ variable "member_ids" {
   description = "List of object IDs of users who will be assigned the Key Vault Secrets Officer role"
 }
 
-variable "stg_account_access_key" {
+variable "lakehouse_stg_account_key" {
+  type        = string
+  description = "Primary access key for the storage account, used to create a Key Vault secret"
+  sensitive   = true
+}
+
+variable "landing_stg_account_key" {
   type        = string
   description = "Primary access key for the storage account, used to create a Key Vault secret"
   sensitive   = true

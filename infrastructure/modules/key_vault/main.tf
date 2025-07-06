@@ -23,9 +23,16 @@ resource "azurerm_role_assignment" "secrets_officer_databricks" {
   scope                = azurerm_key_vault.kv.id
 }
 
-resource "azurerm_key_vault_secret" "my_secret" {
-  name         = "stg-account-access-key"
-  value        = var.stg_account_access_key
+resource "azurerm_key_vault_secret" "lakehouse_secret" {
+  name         = "lakehouse-stg-account-access-key"
+  value        = var.lakehouse_stg_account_key
+  key_vault_id = azurerm_key_vault.kv.id
+  content_type = "text/plain"
+}
+
+resource "azurerm_key_vault_secret" "landing_secret" {
+  name         = "landing-stg-account-access-key"
+  value        = var.landing_stg_account_key
   key_vault_id = azurerm_key_vault.kv.id
   content_type = "text/plain"
 }

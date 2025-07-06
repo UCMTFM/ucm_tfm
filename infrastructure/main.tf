@@ -41,6 +41,22 @@ resource "azurerm_role_assignment" "aad_group_rg_contributor" {
   principal_id         = azuread_group.admins.object_id
 }
 
+# Landing Storage
+
+module "landing_storage" {
+  source              = "./modules/storage_account"
+  name                = "landing"
+  prefix              = var.project
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  tags                = local.tags
+}
+
+resource "azurerm_storage_data_lake_gen2_filesystem" "landing" {
+  name               = "landing"
+  storage_account_id = module.landing_storage.id
+}
+
 # LakeHouse Storage
 
 module "lakehouse_storage" {
@@ -50,11 +66,6 @@ module "lakehouse_storage" {
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   tags                = local.tags
-}
-
-resource "azurerm_storage_data_lake_gen2_filesystem" "landing" {
-  name               = "landing"
-  storage_account_id = module.lakehouse_storage.id
 }
 
 resource "azurerm_storage_data_lake_gen2_filesystem" "bronze" {
@@ -84,6 +95,7 @@ module "databricks_workspace" {
 }
 
 # Databricks Access Connector
+
 module "databricks_access_connector" {
   source              = "./modules/databricks_access_connector"
   prefix              = var.project
@@ -96,14 +108,15 @@ module "databricks_access_connector" {
 # Key Vault
 
 module "key_vault" {
-  source                 = "./modules/key_vault"
-  name                   = "lakehouse"
-  prefix                 = var.project
-  resource_group_name    = module.resource_group.name
-  location               = module.resource_group.location
-  sku                    = "standard"
-  tags                   = local.tags
-  member_ids             = local.member_object_ids
-  stg_account_access_key = module.lakehouse_storage.primary_access_key
-  access_connector_id    = module.databricks_access_connector.id
+  source                    = "./modules/key_vault"
+  name                      = "lakehouse"
+  prefix                    = var.project
+  resource_group_name       = module.resource_group.name
+  location                  = module.resource_group.location
+  sku                       = "standard"
+  tags                      = local.tags
+  member_ids                = local.member_object_ids
+  lakehouse_stg_account_key = module.lakehouse_storage.primary_access_key
+  landing_stg_account_key   = module.landing_storage.primary_access_key
+  access_connector_id       = module.databricks_access_connector.id
 }
