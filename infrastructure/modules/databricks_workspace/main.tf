@@ -18,5 +18,5 @@ resource "azurerm_databricks_workspace" "this" {
 resource "azurerm_role_assignment" "workspace_contributor" {
   scope                = azurerm_databricks_workspace.this.id
   role_definition_name = "Contributor"
-  principal_id         = data.azuread_service_principal.github_actions.id
+  principal_id         = data.azuread_service_principal.github_actions.object_id
 }
