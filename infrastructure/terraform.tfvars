@@ -1,2 +1,2 @@
 project  = "tfmmbe"
-location = "West Europe"
+location = "North Europe"
