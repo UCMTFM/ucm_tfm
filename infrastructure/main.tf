@@ -99,7 +99,6 @@ module "databricks_workspace" {
 
 module "personal_compute" {
   source = "./modules/databricks_clusters"
-
   prefix        = var.project
   spark_version = "15.4.x-scala2.12"
   node_type_id  = "Standard_DS3_v2"
