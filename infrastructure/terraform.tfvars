@@ -1,2 +1,2 @@
-project  = "tfmmdeV2"
+project  = "tfmappinova"
 location = "North Europe"
