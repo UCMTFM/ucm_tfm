@@ -37,7 +37,7 @@ resource "azuread_group_member" "members" {
 resource "azurerm_role_assignment" "aad_group_rg_contributor" {
   scope                = module.resource_group.id
   role_definition_name = "Contributor"
-  principal_id        = azuread_group.admins.object_id
+  principal_id         = azuread_group.admins.object_id
 }
 
 # LakeHouse Storage
@@ -82,4 +82,15 @@ module "databricks_workspace" {
   tags                = local.tags
 }
 
+# Azure k8s Cluster
 
+module "aks" {
+  source = "./modules/aks"
+  name   = "lakehousecluster"
+  prefix = var.project
+
+  location            = module.resource_group.location
+  resource_group_name = module.resource_group.name
+
+  tags = local.tags
+}
