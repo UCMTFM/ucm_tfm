@@ -16,19 +16,6 @@ provider "databricks" {
   azure_workspace_resource_id = var.workspace_resource_id
 }
 
-data "databricks_metastore_assignment" "this" {
-  workspace_id = var.workspace_resource_id
-}
-
-resource "databricks_grants" "grant_storage_cred_privilege" {
-  grant {
-    principal  = "service-principal:${var.azure_client_id}"
-    privileges = ["CREATE_STORAGE_CREDENTIAL"]
-  }
-
-  metastore = data.databricks_metastore.this.id
-}
-
 resource "databricks_storage_credential" "access_connector_credential" {
     name = "dac-${var.prefix}"
 
