@@ -23,6 +23,11 @@ variable "tags" {
   type = map(string)
 }
 
+variable "agent_vm_size" {
+  type    = string
+  default = "Standard_DS2_v2"
+}
+
 variable "agents_count" {
   type    = number
   default = null
@@ -40,5 +45,10 @@ variable "agents_max_count" {
 
 variable "agents_min_count" {
   type    = number
-  default = 0
+  default = 1
+}
+
+variable "auto_scaler_profile_enabled" {
+  type    = bool
+  default = true
 }
