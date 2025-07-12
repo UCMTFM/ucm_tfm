@@ -25,7 +25,7 @@ variable "tags" {
 
 variable "agent_vm_size" {
   type    = string
-  default = "Standard_DS2_v3"
+  default = "Standard_D2s_v3"
 }
 
 variable "temporary_name_for_rotation" {
