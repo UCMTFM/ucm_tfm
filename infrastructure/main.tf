@@ -95,54 +95,32 @@ module "databricks_workspace" {
   azure_client_id     = var.client_id
 }
 
-# Databricks Clusters
+# Azure k8s Cluster
 
-module "personal_compute" {
-  source = "./modules/databricks_clusters"
-  prefix        = var.project
-  spark_version = "15.4.x-scala2.12"
-  node_type_id  = "Standard_DS3_v2"
-  idle_minutes  = 15
-  num_workers   = 1
-  workspace_url = module.databricks_workspace.workspace_url
-}
+module "aks" {
+  source = "./modules/aks"
+  name   = "lakehousecluster"
+  prefix = var.project
 
-# Databricks Access Connector
-
-module "databricks_access_connector" {
-  source              = "./modules/databricks_access_connector"
-  prefix              = var.project
-  resource_group_name = module.resource_group.name
   location            = module.resource_group.location
-  tags                = local.tags
-  storage_account_id  = module.lakehouse_storage.id
+  resource_group_name = module.resource_group.name
+
+  tags = local.tags
 }
 
-# Key Vault
-
-module "key_vault" {
-  source                    = "./modules/key_vault"
-  prefix                    = var.project
-  resource_group_name       = module.resource_group.name
-  location                  = module.resource_group.location
-  sku                       = "standard"
-  tags                      = local.tags
-  member_ids                = local.member_object_ids
-  lakehouse_stg_account_key = module.lakehouse_storage.primary_access_key
-  landing_stg_account_key   = module.landing_storage.primary_access_key
-  access_connector_id       = module.databricks_access_connector.id
+provider "helm" {
+  kubernetes = {
+    host                   = module.aks.host
+    client_certificate     = module.aks.client_certificate
+    client_key             = module.aks.client_key
+    cluster_ca_certificate = module.aks.cluster_ca_certificate
+  }
 }
 
-# Unity Catalog
-
-module "unity_catalog" {
-  source                         = "./modules/unity_catalog"
-  databricks_host                = module.databricks_workspace.workspace_url
-  workspace_resource_id          = module.databricks_workspace.id
-  prefix                         = var.project
-  access_connector_id            = module.databricks_access_connector.id
-  lakehouse_external_layers      = ["bronze", "silver", "gold"]
-  lakehouse_storage_account_name = module.lakehouse_storage.account_name
-  key_vault_id                   = module.key_vault.key_vault_id
-  key_vault_uri                  = module.key_vault.key_vault_uri
+resource "helm_release" "airflow" {
+  name             = "airflow-server"
+  create_namespace = true
+  namespace        = "airflow"
+  repository       = "https://airflow.apache.org"
+  chart            = "airflow"
 }
