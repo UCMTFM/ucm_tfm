@@ -25,7 +25,7 @@ variable "tags" {
 
 variable "agent_vm_size" {
   type    = string
-  default = "Standard_DS2_v2"
+  default = "Standard_DS2_v3"
 }
 
 variable "agents_count" {
