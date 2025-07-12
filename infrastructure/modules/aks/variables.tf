@@ -30,7 +30,7 @@ variable "agent_vm_size" {
 
 variable "temporary_name_for_rotation" {
   type    = string
-  default = "tmpnodepoolforvmresizing"
+  default = "tmpnodepool"
 }
 
 variable "agents_count" {
