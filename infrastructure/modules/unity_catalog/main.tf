@@ -16,13 +16,27 @@ provider "databricks" {
   azure_workspace_resource_id = var.workspace_resource_id
 }
 
-data "databricks_metastore" "current" {
-  name = var.metastore_name
+data "databricks_current_metastore" "this" {}
+
+data "azuread_service_principal" "this" {
+  application_id = var.azure_client_id
 }
 
-resource "databricks_metastore_admins" "grant_sp" {
-  metastore_id = data.databricks_metastore.current.id
-  principal    = var.azure_client_id
+resource "databricks_grants" "metastore_admin" {
+  metastore_id = data.databricks_current_metastore.this.id
+  grant {
+    principal  = data.azuread_service_principal.this.object_id
+    privileges = [
+      "USE_CATALOG",
+      "CREATE_CATALOG",
+      "CREATE_EXTERNAL_LOCATION",
+      "CREATE_STORAGE_CREDENTIAL",
+      "CREATE_SHARE",
+      "CREATE_PROVIDER",
+      "CREATE_RECIPIENT",
+      "MANAGE"
+    ]
+  }
 }
 
 resource "databricks_storage_credential" "access_connector_credential" {
