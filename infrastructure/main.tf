@@ -104,6 +104,18 @@ module "databricks_access_connector" {
   storage_account_id  = module.lakehouse_storage.id
 }
 
+# Unity Catalog
+
+module "unity_catalog" {
+  source                         = "./modules/unity_catalog"
+  databricks_host                = module.databricks_workspace.workspace_url
+  workspace_resource_id          = module.databricks_workspace.id
+  prefix                         = var.project
+  access_connector_id            = module.databricks_access_connector.id
+  lakehouse_external_layers      = ["bronze", "silver", "gold"]
+  lakehouse_storage_account_name = module.lakehouse_storage.account_name
+}
+
 # Azure k8s Cluster
 
 module "aks" {
