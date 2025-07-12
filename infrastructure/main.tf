@@ -127,11 +127,11 @@ provider "helm" {
   }
 }
 
-resource "helm_release" "airflow" {
-  depends_on       = [module.aks]
-  name             = "airflow-server"
-  create_namespace = true
-  namespace        = "airflow"
-  repository       = "https://airflow.apache.org"
-  chart            = "airflow"
-}
+# resource "helm_release" "airflow" {
+#   depends_on       = [module.aks]
+#   name             = "airflow-server"
+#   create_namespace = true
+#   namespace        = "airflow"
+#   repository       = "https://airflow.apache.org"
+#   chart            = "airflow"
+# }
