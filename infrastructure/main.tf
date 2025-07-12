@@ -5,6 +5,7 @@ locals {
       project = var.project
     }
   )
+  member_object_ids = [for _, u in data.azuread_user.members : u.object_id]
 }
 
 
@@ -40,6 +41,22 @@ resource "azurerm_role_assignment" "aad_group_rg_contributor" {
   principal_id         = azuread_group.admins.object_id
 }
 
+# Landing Storage
+
+module "landing_storage" {
+  source              = "./modules/storage_account"
+  name                = "landing"
+  prefix              = var.project
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  tags                = local.tags
+}
+
+resource "azurerm_storage_data_lake_gen2_filesystem" "landing" {
+  name               = "landing"
+  storage_account_id = module.landing_storage.id
+}
+
 # LakeHouse Storage
 
 module "lakehouse_storage" {
@@ -49,11 +66,6 @@ module "lakehouse_storage" {
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   tags                = local.tags
-}
-
-resource "azurerm_storage_data_lake_gen2_filesystem" "landing" {
-  name               = "landing"
-  storage_account_id = module.lakehouse_storage.id
 }
 
 resource "azurerm_storage_data_lake_gen2_filesystem" "bronze" {
