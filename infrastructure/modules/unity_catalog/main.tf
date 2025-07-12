@@ -16,6 +16,15 @@ provider "databricks" {
   azure_workspace_resource_id = var.workspace_resource_id
 }
 
+data "databricks_metastore" "current" {
+  name = var.metastore_name
+}
+
+resource "databricks_metastore_admins" "grant_sp" {
+  metastore_id = data.databricks_metastore.current.id
+  principal    = var.azure_client_id
+}
+
 resource "databricks_storage_credential" "access_connector_credential" {
     name = "dac-${var.prefix}"
 

@@ -117,6 +117,7 @@ module "unity_catalog" {
   azure_client_id                = var.azure_client_id
   azure_client_secret            = var.azure_client_secret
   azure_tenant_id                = var.azure_tenant_id
+  metastore_name                 = module.databricks_workspace.name
 }
 
 # Azure k8s Cluster

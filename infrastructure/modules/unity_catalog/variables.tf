@@ -41,6 +41,10 @@ variable "lakehouse_storage_account_name" {
   type = string
 }
 
+variable "metastore_name" {
+  type = string
+}
+
 # variable "key_vault_id" {
 #   type = string
 # }
