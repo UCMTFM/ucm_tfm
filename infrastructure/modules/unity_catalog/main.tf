@@ -8,16 +8,18 @@ terraform {
 }
 
 provider "databricks" {
-    alias = "default"
-    host  = var.databricks_host
-    azure_workspace_resource_id = var.workspace_resource_id
+  alias = "default"
+  host  = var.databricks_host
+  azure_tenant_id       = var.azure_tenant_id
+  azure_client_id       = var.azure_client_id
+  azure_client_secret   = var.azure_client_secret
 }
 
 resource "databricks_storage_credential" "access_connector_credential" {
     name = "dac-${var.prefix}"
 
     azure_managed_identity {
-    access_connector_id = var.access_connector_id
+      access_connector_id = var.access_connector_id
     }
 
     comment = "Credential linked to Access Connector"
