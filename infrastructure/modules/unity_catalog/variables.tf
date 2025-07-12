@@ -41,7 +41,7 @@ variable "lakehouse_storage_account_name" {
   type = string
 }
 
-variable "metastore_name" {
+variable "container_name" {
   type = string
 }
 
