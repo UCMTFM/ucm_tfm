@@ -13,15 +13,12 @@ terraform {
       version = "3.0.2"
     }
   }
-  backend "local" {
-    path = "terraform.tfstate"
+  backend "azurerm" {
+    resource_group_name  = "rg-terraform-state"
+    storage_account_name = "mbeterraformstate"
+    container_name       = "tfstate"
+    key                  = "terraform.tfstate"
   }
-  # backend "azurerm" {
-  #   resource_group_name  = "rg-terraform-state"
-  #   storage_account_name = "mbeterraformstate"
-  #   container_name       = "tfstate"
-  #   key                  = "terraform.tfstate"
-  # }
 }
 
 provider "azurerm" {
