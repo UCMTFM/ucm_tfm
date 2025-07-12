@@ -16,7 +16,9 @@ provider "databricks" {
   azure_workspace_resource_id = var.workspace_resource_id
 }
 
-data "databricks_current_metastore" "this" {}
+data "databricks_metastore_assignment" "this" {
+  workspace_id = var.workspace_resource_id
+}
 
 resource "databricks_grants" "grant_storage_cred_privilege" {
   grant {
