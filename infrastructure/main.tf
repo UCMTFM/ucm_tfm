@@ -93,6 +93,17 @@ module "databricks_workspace" {
   tags                = local.tags
 }
 
+# Databricks Access Connector
+
+module "databricks_access_connector" {
+  source              = "./modules/databricks_access_connector"
+  prefix              = var.project
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  tags                = local.tags
+  storage_account_id  = module.lakehouse_storage.id
+}
+
 # Azure k8s Cluster
 
 module "aks" {
