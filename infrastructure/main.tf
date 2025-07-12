@@ -131,6 +131,7 @@ module "aks" {
 
 provider "helm" {
   kubernetes = {
+    config_path            = module.aks.kube_config
     host                   = module.aks.host
     client_certificate     = module.aks.client_certificate
     client_key             = module.aks.client_key
@@ -138,10 +139,11 @@ provider "helm" {
   }
 }
 
-# resource "helm_release" "airflow" {
-#   name             = "airflow-server"
-#   create_namespace = true
-#   namespace        = "airflow"
-#   repository       = "https://airflow.apache.org"
-#   chart            = "airflow"
-# }
+resource "helm_release" "airflow" {
+  depends_on       = [module.aks]
+  name             = "airflow-server"
+  create_namespace = true
+  namespace        = "airflow"
+  repository       = "https://airflow.apache.org"
+  chart            = "airflow"
+}
