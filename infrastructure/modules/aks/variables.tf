@@ -28,6 +28,11 @@ variable "agent_vm_size" {
   default = "Standard_DS2_v3"
 }
 
+variable "temporary_name_for_rotation" {
+  type    = string
+  default = "tmpnodepoolforvmresizing"
+}
+
 variable "agents_count" {
   type    = number
   default = null

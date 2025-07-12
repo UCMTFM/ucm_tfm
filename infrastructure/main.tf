@@ -105,8 +105,9 @@ provider "helm" {
 }
 
 resource "helm_release" "airflow" {
-  name       = "airflow-server"
-  namespace  = "airflow"
-  repository = "https://airflow.apache.org"
-  chart      = "airflow"
+  name             = "airflow-server"
+  create_namespace = true
+  namespace        = "airflow"
+  repository       = "https://airflow.apache.org"
+  chart            = "airflow"
 }
