@@ -6,7 +6,7 @@ module "aks" {
   prefix       = var.prefix
   location     = var.location
 
-  agent_size          = var.agent_vm_size
+  agents_size         = var.agent_vm_size
   enable_auto_scaling = var.enable_autoscaling
   agents_max_count    = var.agents_max_count
   agents_min_count    = var.agents_min_count
