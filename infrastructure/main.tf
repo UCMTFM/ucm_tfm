@@ -94,4 +94,31 @@ module "databricks_workspace" {
   tags                = local.tags
 }
 
+# Azure k8s Cluster
 
+module "aks" {
+  source = "./modules/aks"
+  name   = "lakehousecluster"
+  prefix = var.project
+
+  location            = module.resource_group.location
+  resource_group_name = module.resource_group.name
+
+  tags = local.tags
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = module.aks.host
+    client_certificate     = module.aks.client_certificate
+    client_key             = module.aks.client_key
+    cluster_ca_certificate = module.aks.cluster_ca_certificate
+  }
+}
+
+resource "helm_release" "airflow" {
+  name       = "airflow-server"
+  namespace  = "airflow"
+  repository = "https://airflow.apache.org"
+  chart      = "airflow"
+}
