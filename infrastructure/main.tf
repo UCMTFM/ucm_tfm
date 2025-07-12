@@ -148,4 +148,7 @@ resource "helm_release" "airflow" {
   namespace        = "airflow"
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
+
+  values = [file("${path.root}/helm_charts/airflow.yml")]
+
 }
