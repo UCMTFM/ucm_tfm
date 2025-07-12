@@ -7,14 +7,14 @@ terraform {
   }
 }
 
-provider "databricks" {
-  alias                       = "default"
-  auth_type                   = "azure-client-secret"
-  azure_client_id             = var.azure_client_id
-  azure_client_secret         = var.azure_client_secret
-  azure_tenant_id             = var.azure_tenant_id
-  azure_workspace_resource_id = var.workspace_resource_id
-}
+# provider "databricks" {
+#   alias                       = "default"
+#   auth_type                   = "azure-client-secret"
+#   azure_client_id             = var.azure_client_id
+#   azure_client_secret         = var.azure_client_secret
+#   azure_tenant_id             = var.azure_tenant_id
+#   azure_workspace_resource_id = var.workspace_resource_id
+# }
 
 resource "databricks_storage_credential" "access_connector_credential" {
     name = "dac-${var.prefix}"
@@ -29,7 +29,7 @@ resource "databricks_storage_credential" "access_connector_credential" {
 resource "databricks_external_location" "lakehouse_layers" {
     for_each        = toset(var.lakehouse_external_layers)
     name            = "external_location_${each.key}"
-    url             = "abfss://${each.key}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/"
+    url             = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/${each.key}"
     credential_name = databricks_storage_credential.access_connector_credential.name
     comment         = "External location for the ${each.key} layer of the Lakehouse"
 

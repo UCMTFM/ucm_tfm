@@ -76,30 +76,44 @@ module "lakehouse_storage" {
   tags                = local.tags
 }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "bronze" {
-  name               = "bronze"
+resource "azurerm_storage_data_lake_gen2_filesystem" "lakehouse" {
+  name               = "lakehouse"
   storage_account_id = module.lakehouse_storage.id
 }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "silver" {
-  name               = "silver"
+resource "azurerm_storage_data_lake_gen2_path" "bronze" {
+  path               = "lakehouse/bronze"
+  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
+  resource           = "directory"
 }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "gold" {
-  name               = "gold"
+resource "azurerm_storage_data_lake_gen2_path" "silver" {
+  path               = "lakehouse/silver"
+  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
+  resource           = "directory"
+}
+
+resource "azurerm_storage_data_lake_gen2_path" "gold" {
+  path               = "lakehouse/gold"
+  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
+  storage_account_id = module.lakehouse_storage.id
+  resource          = "directory"
 }
 
 # Databricks Workspace
 
 module "databricks_workspace" {
-  source              = "./modules/databricks_workspace"
-  prefix              = var.project
-  name                = "lakehouse"
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
-  tags                = local.tags
+  source                         = "./modules/databricks_workspace"
+  prefix                         = var.project
+  name                           = "lakehouse"
+  resource_group_name            = module.resource_group.name
+  location                       = module.resource_group.location
+  tags                           = local.tags
+  container_name                 = "lakehouse"
+  lakehouse_storage_account_name = module.lakehouse_storage.account_name
+  admin_group_name               = azuread_group.admins.display_name
 }
 
 # Databricks Access Connector
@@ -126,7 +140,7 @@ module "unity_catalog" {
   azure_client_id                = var.azure_client_id
   azure_client_secret            = var.azure_client_secret
   azure_tenant_id                = var.azure_tenant_id
-  metastore_name                 = module.databricks_workspace.workspace_name
+  container_name                 = "lakehouse"
 }
 
 # Azure k8s Cluster
