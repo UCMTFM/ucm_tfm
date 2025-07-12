@@ -11,3 +11,9 @@ resource "azurerm_databricks_workspace" "this" {
   }
 }
 
+# resource "databricks_metastore" "this" {
+#   name         = "lakehouse"
+#   storage_root = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/"
+#   owner        = "your-admin-group-name" # e.g., "account users"
+#   force_destroy = true
+# }
