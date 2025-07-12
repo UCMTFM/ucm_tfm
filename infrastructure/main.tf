@@ -28,10 +28,19 @@ data "azuread_user" "members" {
   user_principal_name = each.key
 }
 
+data "azuread_service_principal" "github_app" {
+  client_id = var.azure_client_id
+}
+
 resource "azuread_group_member" "members" {
   for_each         = data.azuread_user.members
   group_object_id  = azuread_group.admins.object_id
   member_object_id = each.value.object_id
+}
+
+resource "azuread_group_member" "sp_member" {
+  group_object_id  = azuread_group.admins.object_id
+  member_object_id = data.azuread_service_principal.github_app.object_id
 }
 
 resource "azurerm_role_assignment" "aad_group_rg_contributor" {
