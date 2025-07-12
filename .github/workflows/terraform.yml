@@ -1,22 +1,22 @@
-name: 'Terraform Deployment'
+name: "Terraform Deployment"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
-      - 'infrastructure/**'
-      - '.github/workflows/**'
+      - "infrastructure/**"
+      - ".github/workflows/**"
   pull_request:
     paths:
-      - 'infrastructure/**'
-      - '.github/workflows/**'
+      - "infrastructure/**"
+      - ".github/workflows/**"
 
 permissions:
   contents: read
 
 jobs:
   terraform_deployment:
-    name: 'Terraform'
+    name: "Terraform"
     runs-on: ubuntu-latest
     environment: production
 
@@ -50,7 +50,7 @@ jobs:
       run: terraform init
 
     - name: Terraform Plan
-      run: terraform plan -input=false
+      run: terraform plan -input=false -lock=false
       env:
         ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         TF_VAR_group_members: ${{vars.TF_VAR_GROUP_MEMBERS}}

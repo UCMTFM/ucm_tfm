@@ -135,13 +135,14 @@ module "aks" {
 provider "helm" {
   kubernetes = {
     host                   = module.aks.host
-    client_certificate     = module.aks.client_certificate
-    client_key             = module.aks.client_key
-    cluster_ca_certificate = module.aks.cluster_ca_certificate
+    client_certificate     = base64decode(module.aks.client_certificate)
+    client_key             = base64decode(module.aks.client_key)
+    cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
   }
 }
 
 resource "helm_release" "airflow" {
+  depends_on       = [module.aks]
   name             = "airflow-server"
   create_namespace = true
   namespace        = "airflow"
