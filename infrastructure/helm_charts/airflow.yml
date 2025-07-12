@@ -5,7 +5,7 @@ loadExamples: false
 
 # Component Replica Counts
 webserver:
-  replicaCount: 1
+  replicas: 1
   resources:
     requests:
       cpu: 100m
@@ -14,7 +14,7 @@ webserver:
       cpu: 200m
       memory: 256Mi
 scheduler:
-  replicaCount: 1
+  replicas: 1
   resources:
     requests:
       cpu: 100m
@@ -22,8 +22,8 @@ scheduler:
     limits:
       cpu: 200m
       memory: 256Mi
-worker:
-  replicaCount: 0
+workers:
+  replicas: 0
 
 # Disabling Auxiliary Services
 postgresql:
@@ -33,8 +33,6 @@ redis:
 flower:
   enabled: false # Not needed with LocalExecutor
 statsd:
-  enabled: false
-prometheus:
   enabled: false
 ingress:
   web:
