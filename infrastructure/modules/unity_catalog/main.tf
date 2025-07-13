@@ -11,12 +11,12 @@ provider "databricks" {
   azure_workspace_resource_id = var.databricks_workspace_id
 }
 
-resource "databricks_metastore" "lakehouse" {
-  name          = "lakehouse"
-  storage_root  = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/"
-  owner         = var.admin_group_name
-  force_destroy = true
-}
+# resource "databricks_metastore" "lakehouse" {
+#   name          = "lakehouse"
+#   storage_root  = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/"
+#   owner         = var.admin_group_name
+#   force_destroy = true
+# }
 
 resource "databricks_storage_credential" "access_connector_credential" {
     name = "dac-${var.prefix}"
