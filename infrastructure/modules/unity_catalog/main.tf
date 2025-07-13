@@ -8,7 +8,6 @@ terraform {
 }
 
 provider "databricks" {
-  azure_workspace_resource_id = var.databricks_workspace_id
   client_id                   = var.azure_client_id
   client_secret               = var.azure_client_secret
   azure_tenant_id             = var.azure_tenant_id
