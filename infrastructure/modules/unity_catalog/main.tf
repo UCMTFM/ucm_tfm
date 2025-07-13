@@ -7,14 +7,14 @@ terraform {
   }
 }
 
-# provider "databricks" {
-#   alias                       = "default"
-#   auth_type                   = "azure-client-secret"
-#   azure_client_id             = var.azure_client_id
-#   azure_client_secret         = var.azure_client_secret
-#   azure_tenant_id             = var.azure_tenant_id
-#   azure_workspace_resource_id = var.workspace_resource_id
-# }
+provider "databricks" {}
+
+resource "databricks_metastore" "lakehouse" {
+  name          = "lakehouse"
+  storage_root  = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/"
+  owner         = var.admin_group_name
+  force_destroy = true
+}
 
 resource "databricks_storage_credential" "access_connector_credential" {
     name = "dac-${var.prefix}"

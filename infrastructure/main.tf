@@ -111,9 +111,6 @@ module "databricks_workspace" {
   resource_group_name            = module.resource_group.name
   location                       = module.resource_group.location
   tags                           = local.tags
-  container_name                 = "lakehouse"
-  lakehouse_storage_account_name = module.lakehouse_storage.account_name
-  admin_group_name               = azuread_group.admins.display_name
 }
 
 # Databricks Access Connector
@@ -131,8 +128,7 @@ module "databricks_access_connector" {
 
 module "unity_catalog" {
   source                         = "./modules/unity_catalog"
-  databricks_host                = module.databricks_workspace.workspace_url
-  workspace_resource_id          = module.databricks_workspace.id
+  databricks_workspace_id        = module.databricks_workspace.id
   prefix                         = var.project
   access_connector_id            = module.databricks_access_connector.id
   lakehouse_external_layers      = ["bronze", "silver", "gold"]
@@ -141,6 +137,7 @@ module "unity_catalog" {
   azure_client_secret            = var.azure_client_secret
   azure_tenant_id                = var.azure_tenant_id
   container_name                 = "lakehouse"
+  admin_group_name               = azuread_group.admins.display_name
 }
 
 # Azure k8s Cluster
