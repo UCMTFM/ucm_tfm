@@ -133,9 +133,6 @@ module "unity_catalog" {
   access_connector_id            = module.databricks_access_connector.id
   lakehouse_external_layers      = ["bronze", "silver", "gold"]
   lakehouse_storage_account_name = module.lakehouse_storage.account_name
-  azure_client_id                = var.azure_client_id
-  azure_client_secret            = var.azure_client_secret
-  azure_tenant_id                = var.azure_tenant_id
   container_name                 = "lakehouse"
   admin_group_name               = azuread_group.admins.display_name
 }

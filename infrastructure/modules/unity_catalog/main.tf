@@ -7,7 +7,9 @@ terraform {
   }
 }
 
-provider "databricks" {}
+provider "databricks" {
+  azure_workspace_resource_id = var.databricks_workspace_id
+}
 
 resource "databricks_metastore" "lakehouse" {
   name          = "lakehouse"
