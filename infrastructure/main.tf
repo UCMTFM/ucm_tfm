@@ -82,21 +82,21 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "lakehouse" {
 }
 
 resource "azurerm_storage_data_lake_gen2_path" "bronze" {
-  path               = "lakehouse/bronze"
+  path               = "bronze"
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
   resource           = "directory"
 }
 
 resource "azurerm_storage_data_lake_gen2_path" "silver" {
-  path               = "lakehouse/silver"
+  path               = "silver"
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
   resource           = "directory"
 }
 
 resource "azurerm_storage_data_lake_gen2_path" "gold" {
-  path               = "lakehouse/gold"
+  path               = "gold"
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
   resource          = "directory"
@@ -133,9 +133,6 @@ module "unity_catalog" {
   access_connector_id            = module.databricks_access_connector.id
   lakehouse_external_layers      = ["bronze", "silver", "gold"]
   lakehouse_storage_account_name = module.lakehouse_storage.account_name
-  azure_client_id                = var.azure_client_id
-  azure_client_secret            = var.azure_client_secret
-  azure_tenant_id                = var.azure_tenant_id
   container_name                 = "lakehouse"
   admin_group_name               = azuread_group.admins.display_name
 }
