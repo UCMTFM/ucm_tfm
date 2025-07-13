@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    databricks = {
+      source  = "databricks/databricks"
+      version = "1.30.0"
+    }
+  }
+}
+
 resource "azurerm_databricks_workspace" "this" {
   name                          = "adb${var.prefix}${var.name}"
   resource_group_name           = var.resource_group_name
