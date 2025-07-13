@@ -137,6 +137,18 @@ module "unity_catalog" {
   admin_group_name               = azuread_group.admins.display_name
 }
 
+# Databricks Clusters
+
+module "shared_compute" {
+  source                  = "./modules/databricks_clusters"
+  prefix                  = var.project
+  spark_version           = "15.4.x-scala2.12"
+  node_type_id            = "Standard_DS3_v2"
+  idle_minutes            = 15
+  num_workers             = 1
+  databricks_workspace_id = module.databricks_workspace.id
+}
+
 # Azure k8s Cluster
 
 module "aks" {
