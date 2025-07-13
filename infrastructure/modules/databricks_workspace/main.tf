@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    databricks = {
+      source  = "databricks/databricks"
+      version = "1.30.0"
+    }
+  }
+}
+
 resource "azurerm_databricks_workspace" "this" {
   name                          = "adb${var.prefix}${var.name}"
   resource_group_name           = var.resource_group_name
@@ -11,9 +20,9 @@ resource "azurerm_databricks_workspace" "this" {
   }
 }
 
-# resource "databricks_metastore" "this" {
-#   name         = "lakehouse"
-#   storage_root = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/"
-#   owner        = "your-admin-group-name" # e.g., "account users"
-#   force_destroy = true
-# }
+resource "databricks_metastore" "this" {
+  name          = "lakehouse"
+  storage_root  = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/"
+  owner         = var.admin_group_name
+  force_destroy = true
+}
