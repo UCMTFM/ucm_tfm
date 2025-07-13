@@ -16,11 +16,7 @@ variable "azure_tenant_id" {
   description = "Azure Tenant ID for the service principal"
 }
 
-variable "databricks_host" {
-  type = string
-}
-
-variable "workspace_resource_id" {
+variable "databricks_workspace_id" {
   type = string
 }
 
