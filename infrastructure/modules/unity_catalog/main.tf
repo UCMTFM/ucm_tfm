@@ -7,10 +7,7 @@ terraform {
   }
 }
 
-provider "databricks" {
-  azure_workspace_resource_id = var.databricks_workspace_id
-  azure_use_cli_auth          = true
-}
+provider "databricks" {}
 
 resource "databricks_metastore" "lakehouse" {
   name          = "lakehouse"
