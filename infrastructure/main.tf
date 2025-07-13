@@ -82,21 +82,21 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "lakehouse" {
 }
 
 resource "azurerm_storage_data_lake_gen2_path" "bronze" {
-  path               = "lakehouse/bronze"
+  path               = "bronze"
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
   resource           = "directory"
 }
 
 resource "azurerm_storage_data_lake_gen2_path" "silver" {
-  path               = "lakehouse/silver"
+  path               = "silver"
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
   resource           = "directory"
 }
 
 resource "azurerm_storage_data_lake_gen2_path" "gold" {
-  path               = "lakehouse/gold"
+  path               = "gold"
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
   resource          = "directory"
