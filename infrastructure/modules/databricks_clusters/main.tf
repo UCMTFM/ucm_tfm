@@ -24,7 +24,5 @@ resource "databricks_cluster" "shared_compute_cluster" {
   autotermination_minutes = var.idle_minutes
   num_workers             = var.num_workers
 
-  enable_photon           = false
-
   data_security_mode      = "USER_ISOLATION"
 }
