@@ -1,8 +1,6 @@
 # Airflow executor
 # One or multiple of: LocalExecutor, CeleryExecutor, KubernetesExecutor
-executor: "LocalExecutor"
-loadExamples: false
-
+executor: LocalExecutor
 # Component Replica Counts
 webserver:
   replicas: 1
@@ -23,22 +21,22 @@ scheduler:
       cpu: 200m
       memory: 256Mi
 workers:
-  replicas: 0
+  replicas: 1
 
 # Disabling Auxiliary Services
 postgresql:
-  enabled: false
+  enabled: true
 redis:
   enabled: false # Not needed with LocalExecutor
 flower:
   enabled: false # Not needed with LocalExecutor
 statsd:
-  enabled: false
+  enabled: true
 ingress:
   web:
     enabled: false
   flower:
-    enabled: false # Not needed as Flower is disabled
+    enabled: false
 
 # Persistence Configuration (for ephemeral data)
 logs:

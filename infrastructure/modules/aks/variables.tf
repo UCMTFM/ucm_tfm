@@ -35,7 +35,7 @@ variable "temporary_name_for_rotation" {
 
 variable "agents_count" {
   type    = number
-  default = null
+  default = 2
 }
 
 variable "enable_autoscaling" {

@@ -152,14 +152,14 @@ module "shared_compute" {
 # Azure k8s Cluster
 
 module "aks" {
-  source = "./modules/aks"
-  name   = "lakehousecluster"
-  prefix = var.project
-
+  source              = "./modules/aks"
+  name                = "lakehousecluster"
+  prefix              = var.project
   location            = module.resource_group.location
   resource_group_name = module.resource_group.name
-
-  tags = local.tags
+  enable_autoscaling  = false
+  agents_count        = 2
+  tags                = local.tags
 }
 
 provider "helm" {
@@ -174,11 +174,14 @@ provider "helm" {
 resource "helm_release" "airflow" {
   depends_on       = [module.aks]
   name             = "airflow-server"
+  atomic           = true
   create_namespace = true
   namespace        = "airflow"
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
+  timeout          = 600
+  version          = "1.18.0"
 
-  values = [file("${path.root}/helm_charts/airflow.yml")]
+  #values = [file("${path.root}/helm_charts/airflow.yml")]
 
 }
