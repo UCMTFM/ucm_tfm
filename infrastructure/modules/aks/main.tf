@@ -1,14 +1,6 @@
-<<<<<<< HEAD
-resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "aks${var.prefix}${var.name}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  dns_prefix          = var.dns_prefix != null ? var.dns_prefix : "aks${var.prefix}${var.name}"
-=======
 module "aks" {
   source  = "Azure/aks/azurerm"
   version = "10.1.1"
->>>>>>> parent of d49ea89 (Change AKS module definition)
 
   cluster_name = "aks${var.prefix}${var.name}"
   prefix       = var.prefix

@@ -3,6 +3,13 @@
 executor: "LocalExecutor"
 loadExamples: false
 
+createUserJob:
+  useHelmHooks: false
+  applyCustomEnv: false
+migrateDatabaseJob:
+  useHelmHooks: false
+  applyCustomEnv: false
+
 # Component Replica Counts
 webserver:
   replicas: 1
@@ -38,7 +45,7 @@ ingress:
   web:
     enabled: false
   flower:
-    enabled: false # Not needed as Flower is disabled
+    enabled: false # Not needed with LocalExecutor
 
 # Persistence Configuration (for ephemeral data)
 logs:

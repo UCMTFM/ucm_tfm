@@ -145,10 +145,10 @@ resource "helm_release" "airflow" {
   depends_on       = [module.aks]
   name             = "airflow-server"
   create_namespace = true
+  atomic           = true
   namespace        = "airflow"
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
 
   values = [file("${path.root}/helm_charts/airflow.yml")]
-
 }
