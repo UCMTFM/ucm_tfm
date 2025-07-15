@@ -22,7 +22,11 @@ resource "databricks_cluster" "shared_compute_cluster" {
   policy_id               = data.databricks_cluster_policy.shared_compute.id
 
   autotermination_minutes = var.idle_minutes
-  num_workers             = var.num_workers
+
+  autoscale {
+    min_workers = var.num_workers
+    max_workers = var.num_workers
+  }
 
   data_security_mode      = "USER_ISOLATION"
 }
