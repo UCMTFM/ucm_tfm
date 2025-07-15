@@ -19,6 +19,13 @@ variable "location" {
   type = string
 }
 
+variable "dns_prefix" {
+  type        = string
+  description = "DNS prefix for the AKS cluster"
+  nullable    = true
+  default     = null
+}
+
 variable "tags" {
   type = map(string)
 }
