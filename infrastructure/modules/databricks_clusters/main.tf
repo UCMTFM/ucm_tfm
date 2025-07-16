@@ -29,4 +29,9 @@ resource "databricks_cluster" "shared_compute_cluster" {
   }
 
   data_security_mode      = "USER_ISOLATION"
+
+  lifecycle {
+    create_before_destroy = false
+    prevent_destroy       = false
+  }
 }
