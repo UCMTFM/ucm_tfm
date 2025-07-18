@@ -1,0 +1,36 @@
+executor: "CeleryExecutor"
+
+createUserJob:
+  useHelmHooks: false
+  applyCustomEnv: false
+migrateDatabaseJob:
+  useHelmHooks: false
+  applyCustomEnv: false
+
+# Services Configuration
+apiServer:
+  replicas: 1
+  args: ["bash", "-c", "exec airflow api-server --workers 2"]
+  waitForMigrations:
+    enabled: false
+scheduler:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+statsd:
+  enabled: false
+ingress:
+  web:
+    enabled: false
+
+logs:
+  persistence:
+    enabled: false # Do not persist logs
+dags:
+  persistence:
+    enabled: false # Do not persist DAGs (assume GitSync or baked-in)

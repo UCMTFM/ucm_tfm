@@ -99,18 +99,18 @@ resource "azurerm_storage_data_lake_gen2_path" "gold" {
   path               = "gold"
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
-  resource          = "directory"
+  resource           = "directory"
 }
 
 # Databricks Workspace
 
 module "databricks_workspace" {
-  source                         = "./modules/databricks_workspace"
-  prefix                         = var.project
-  name                           = "lakehouse"
-  resource_group_name            = module.resource_group.name
-  location                       = module.resource_group.location
-  tags                           = local.tags
+  source              = "./modules/databricks_workspace"
+  prefix              = var.project
+  name                = "lakehouse"
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  tags                = local.tags
 }
 
 # Databricks Access Connector
@@ -179,6 +179,7 @@ resource "helm_release" "airflow" {
   namespace        = "airflow"
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
+  version          = "1.17.0"
 
-  values = [file("${path.root}/helm_charts/airflow.yml")]
+  values = [file("${path.root}/helm_charts/airflow.yaml")]
 }
