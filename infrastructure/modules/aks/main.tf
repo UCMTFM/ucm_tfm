@@ -11,6 +11,7 @@ module "aks" {
   enable_auto_scaling         = var.enable_autoscaling
   agents_max_count            = var.agents_max_count
   agents_min_count            = var.agents_min_count
+  agents_count                = var.enable_autoscaling ? null : var.agents_count
 
   resource_group_name         = var.resource_group_name
   tags                        = var.tags
