@@ -28,10 +28,19 @@ data "azuread_user" "members" {
   user_principal_name = each.key
 }
 
+data "azuread_service_principal" "github_app" {
+  client_id = var.azure_client_id
+}
+
 resource "azuread_group_member" "members" {
   for_each         = data.azuread_user.members
   group_object_id  = azuread_group.admins.object_id
   member_object_id = each.value.object_id
+}
+
+resource "azuread_group_member" "sp_member" {
+  group_object_id  = azuread_group.admins.object_id
+  member_object_id = data.azuread_service_principal.github_app.object_id
 }
 
 resource "azurerm_role_assignment" "aad_group_rg_contributor" {
@@ -67,30 +76,41 @@ module "lakehouse_storage" {
   tags                = local.tags
 }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "bronze" {
-  name               = "bronze"
+resource "azurerm_storage_data_lake_gen2_filesystem" "lakehouse" {
+  name               = "lakehouse"
   storage_account_id = module.lakehouse_storage.id
 }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "silver" {
-  name               = "silver"
+resource "azurerm_storage_data_lake_gen2_path" "bronze" {
+  path               = "bronze"
+  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
+  resource           = "directory"
 }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "gold" {
-  name               = "gold"
+resource "azurerm_storage_data_lake_gen2_path" "silver" {
+  path               = "silver"
+  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
+  resource           = "directory"
+}
+
+resource "azurerm_storage_data_lake_gen2_path" "gold" {
+  path               = "gold"
+  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
+  storage_account_id = module.lakehouse_storage.id
+  resource          = "directory"
 }
 
 # Databricks Workspace
 
 module "databricks_workspace" {
-  source              = "./modules/databricks_workspace"
-  prefix              = var.project
-  name                = "lakehouse"
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
-  tags                = local.tags
+  source                         = "./modules/databricks_workspace"
+  prefix                         = var.project
+  name                           = "lakehouse"
+  resource_group_name            = module.resource_group.name
+  location                       = module.resource_group.location
+  tags                           = local.tags
 }
 
 # Databricks Access Connector
@@ -108,15 +128,25 @@ module "databricks_access_connector" {
 
 module "unity_catalog" {
   source                         = "./modules/unity_catalog"
-  databricks_host                = module.databricks_workspace.workspace_url
-  workspace_resource_id          = module.databricks_workspace.id
+  databricks_workspace_id        = module.databricks_workspace.id
   prefix                         = var.project
   access_connector_id            = module.databricks_access_connector.id
   lakehouse_external_layers      = ["bronze", "silver", "gold"]
   lakehouse_storage_account_name = module.lakehouse_storage.account_name
-  azure_client_id                = var.azure_client_id
-  azure_client_secret            = var.azure_client_secret
-  azure_tenant_id                = var.azure_tenant_id
+  container_name                 = "lakehouse"
+  admin_group_name               = azuread_group.admins.display_name
+}
+
+# Databricks Clusters
+
+module "shared_compute" {
+  source                  = "./modules/databricks_clusters"
+  prefix                  = var.project
+  spark_version           = "16.4.x-scala2.12"
+  node_type_id            = "Standard_DS3_v2"
+  idle_minutes            = 15
+  num_workers             = 1
+  databricks_workspace_id = module.databricks_workspace.id
 }
 
 # Azure k8s Cluster
