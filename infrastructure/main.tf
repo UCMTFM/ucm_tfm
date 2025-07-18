@@ -175,11 +175,12 @@ resource "helm_release" "airflow" {
   depends_on       = [module.aks]
   name             = "airflow-server"
   create_namespace = true
-  atomic           = true
   namespace        = "airflow"
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
   version          = "1.17.0"
+  wait             = true
+  timeout          = 900
 
   values = [file("${path.root}/helm_charts/airflow.yaml")]
 }
