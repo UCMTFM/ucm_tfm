@@ -179,8 +179,8 @@ resource "helm_release" "airflow" {
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
   version          = "1.17.0"
-  wait             = true
-  timeout          = 900
+  wait             = false
+  timeout          = 300
 
   values = [file("${path.root}/helm_charts/airflow.yaml")]
 }
