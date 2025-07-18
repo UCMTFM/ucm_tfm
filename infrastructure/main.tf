@@ -99,18 +99,18 @@ resource "azurerm_storage_data_lake_gen2_path" "gold" {
   path               = "gold"
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
-  resource          = "directory"
+  resource           = "directory"
 }
 
 # Databricks Workspace
 
 module "databricks_workspace" {
-  source                         = "./modules/databricks_workspace"
-  prefix                         = var.project
-  name                           = "lakehouse"
-  resource_group_name            = module.resource_group.name
-  location                       = module.resource_group.location
-  tags                           = local.tags
+  source              = "./modules/databricks_workspace"
+  prefix              = var.project
+  name                = "lakehouse"
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  tags                = local.tags
 }
 
 # Databricks Access Connector
@@ -152,14 +152,14 @@ module "shared_compute" {
 # Azure k8s Cluster
 
 module "aks" {
-  source              = "./modules/aks"
-  name                = "lakehousecluster"
-  prefix              = var.project
+  source = "./modules/aks"
+  name   = "lakehousecluster"
+  prefix = var.project
+
   location            = module.resource_group.location
   resource_group_name = module.resource_group.name
-  enable_autoscaling  = false
-  agents_count        = 2
-  tags                = local.tags
+
+  tags = local.tags
 }
 
 provider "helm" {
@@ -174,14 +174,12 @@ provider "helm" {
 resource "helm_release" "airflow" {
   depends_on       = [module.aks]
   name             = "airflow-server"
-  atomic           = true
   create_namespace = true
+  atomic           = true
   namespace        = "airflow"
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
-  timeout          = 600
-  version          = "1.18.0"
+  version          = "1.17.0"
 
-  #values = [file("${path.root}/helm_charts/airflow.yml")]
-
+  values = [file("${path.root}/helm_charts/airflow.yaml")]
 }
