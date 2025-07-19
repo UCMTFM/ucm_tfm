@@ -20,6 +20,11 @@ resource "databricks_cluster" "shared_compute_cluster" {
   num_workers             = var.num_workers
   single_user_name        = var.databricks_cluster_user
 
+  spark_conf = {
+    "spark.databricks.cluster.profile" = "singleNode"
+    "spark.master"                     = "local[*]"
+  }
+
   lifecycle {
     create_before_destroy = false
     prevent_destroy       = false
