@@ -37,9 +37,6 @@ ingress:
   web:
     enabled: false
 
-logs:
-  persistence:
-    enabled: true
 dags:
   gitSync:
     enabled: true
