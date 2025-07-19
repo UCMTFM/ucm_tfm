@@ -159,6 +159,7 @@ module "aks" {
   location            = module.resource_group.location
   resource_group_name = module.resource_group.name
   agents_count        = 2
+  agents_min_count    = 2
 
   tags = local.tags
 }
