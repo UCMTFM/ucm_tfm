@@ -65,6 +65,14 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "landing" {
   storage_account_id = module.landing_storage.id
 }
 
+resource "azurerm_storage_data_lake_gen2_path" "landing_directories" {
+  for_each           = toset(var.landing_directories)
+  path               = each.value
+  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.landing.name
+  storage_account_id = module.landing_storage.id
+  resource           = "directory"
+}
+
 # LakeHouse Storage
 
 module "lakehouse_storage" {
@@ -81,22 +89,9 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "lakehouse" {
   storage_account_id = module.lakehouse_storage.id
 }
 
-resource "azurerm_storage_data_lake_gen2_path" "bronze" {
-  path               = "bronze"
-  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
-  storage_account_id = module.lakehouse_storage.id
-  resource           = "directory"
-}
-
-resource "azurerm_storage_data_lake_gen2_path" "silver" {
-  path               = "silver"
-  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
-  storage_account_id = module.lakehouse_storage.id
-  resource           = "directory"
-}
-
-resource "azurerm_storage_data_lake_gen2_path" "gold" {
-  path               = "gold"
+resource "azurerm_storage_data_lake_gen2_path" "lakehouse_directories" {
+  for_each           = toset(var.lakehouse_directories)
+  path               = each.value
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
   storage_account_id = module.lakehouse_storage.id
   resource           = "directory"

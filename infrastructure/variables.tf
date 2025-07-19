@@ -25,3 +25,13 @@ variable "azure_client_id" {
   sensitive = true
   description = "Azure Client ID for the service principal"
 }
+
+variable "lakehouse_directories" {
+  description = "List of directories to be created in the lakhouse Storage Account"
+  type        = list(string)
+}
+
+variable "landing_directories" {
+  description = "List of directories to be created in the landing Storage Account"
+  type        = list(string)
+}
