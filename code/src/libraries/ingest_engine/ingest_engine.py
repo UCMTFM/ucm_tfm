@@ -1,5 +1,6 @@
-from ingest_engine.registry import INGESTOR_REGISTRY
+# from ingest_engine.registry import INGESTOR_REGISTRY
 from loguru import logger
+from registry import INGESTOR_REGISTRY
 
 
 class Engine:
@@ -42,8 +43,8 @@ class Engine:
 
 
 if __name__ == "__main__":
-    dataset = "climate"
-    config_path = f"./config/bronze/{dataset}_config.json"
+    dataset = "facturas"
+    config_path = f"./config_files/bronze/{dataset}_config.json"
     workload = "batch"
     engine = Engine(workload, config_path)
     engine.ingest()

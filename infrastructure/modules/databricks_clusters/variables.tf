@@ -5,7 +5,7 @@ variable "prefix" {
 
 variable "spark_version" {
   type        = string
-  description = "Spark version for the Databricks cluster"
+  description = "Spark version for the Databricks cluster."
 }
 
 variable "node_type_id" {
