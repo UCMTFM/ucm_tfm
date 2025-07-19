@@ -41,5 +41,10 @@ logs:
   persistence:
     enabled: false # Do not persist logs
 dags:
+  gitSync:
+    enabled: true
+    repo: https://github.com/UCMTFM/ucm_tfm.git
+    branch: main
+    subPath: "airflow/dags"
   persistence:
     enabled: false # Do not persist DAGs (assume GitSync or baked-in)
