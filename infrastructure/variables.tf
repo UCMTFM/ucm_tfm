@@ -35,3 +35,8 @@ variable "landing_directories" {
   description = "List of directories to be created in the landing Storage Account"
   type        = list(string)
 }
+
+variable "databricks_cluster_user" {
+  type        = string
+  description = "User name for the single user of the Databricks cluster"  
+}
