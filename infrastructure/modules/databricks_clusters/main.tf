@@ -16,9 +16,9 @@ resource "databricks_cluster" "shared_compute_cluster" {
   spark_version           = var.spark_version
   node_type_id            = var.node_type_id
   autotermination_minutes = var.idle_minutes
-  data_security_mode      = "SINGLE_USER"
+  # data_security_mode      = "SINGLE_USER"
   num_workers             = var.num_workers
-  single_user_name        = var.databricks_cluster_user
+  # single_user_name        = var.databricks_cluster_user
 
   spark_conf = {
     "spark.databricks.cluster.profile" = "singleNode"
