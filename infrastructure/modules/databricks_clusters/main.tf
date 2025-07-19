@@ -20,12 +20,10 @@ data "databricks_cluster_policy" "shared_compute" {
 }
 
 resource "databricks_cluster" "shared_compute_cluster" {
-  cluster_name   = "cluster-${var.prefix}-${local.node_type_hash}"
-  spark_version  = var.spark_version
-  node_type_id   = var.node_type_id
-  policy_id      = data.databricks_cluster_policy.shared_compute.id
-  is_single_node = true
-  kind           = "CLASSIC_PREVIEW"
+  cluster_name            = "cluster-${var.prefix}-${local.node_type_hash}"
+  spark_version           = var.spark_version
+  node_type_id            = var.node_type_id
+  policy_id               = data.databricks_cluster_policy.shared_compute.id
 
   autotermination_minutes = var.idle_minutes
 
@@ -34,7 +32,7 @@ resource "databricks_cluster" "shared_compute_cluster" {
     max_workers = var.num_workers
   }
 
-  data_security_mode = "USER_ISOLATION"
+  data_security_mode      = "USER_ISOLATION"
 
   lifecycle {
     create_before_destroy = false
