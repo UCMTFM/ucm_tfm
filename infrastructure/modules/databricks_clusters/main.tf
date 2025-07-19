@@ -25,6 +25,7 @@ resource "databricks_cluster" "shared_compute_cluster" {
   node_type_id   = var.node_type_id
   policy_id      = data.databricks_cluster_policy.shared_compute.id
   is_single_node = true
+  kind           = "CLASSIC_PREVIEW"
 
   autotermination_minutes = var.idle_minutes
 
