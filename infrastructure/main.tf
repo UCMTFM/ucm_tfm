@@ -143,7 +143,7 @@ module "shared_compute" {
   source                  = "./modules/databricks_clusters"
   prefix                  = var.project
   spark_version           = "16.4.x-scala2.12"
-  node_type_id            = "Standard_DS3_v2"
+  node_type_id            = "Standard_F4s_v2"
   idle_minutes            = 15
   num_workers             = 1
   databricks_workspace_id = module.databricks_workspace.id
@@ -171,16 +171,16 @@ provider "helm" {
   }
 }
 
-resource "helm_release" "airflow" {
-  depends_on       = [module.aks]
-  name             = "airflow-server"
-  create_namespace = true
-  namespace        = "airflow"
-  repository       = "https://airflow.apache.org"
-  chart            = "airflow"
-  version          = "1.17.0"
-  wait             = false
-  timeout          = 300
+# resource "helm_release" "airflow" {
+#   depends_on       = [module.aks]
+#   name             = "airflow-server"
+#   create_namespace = true
+#   namespace        = "airflow"
+#   repository       = "https://airflow.apache.org"
+#   chart            = "airflow"
+#   version          = "1.17.0"
+#   wait             = false
+#   timeout          = 300
 
-  values = [file("${path.root}/helm_charts/airflow.yaml")]
-}
+#   values = [file("${path.root}/helm_charts/airflow.yaml")]
+# }
