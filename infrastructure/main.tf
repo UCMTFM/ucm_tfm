@@ -137,10 +137,10 @@ module "unity_catalog" {
 module "shared_compute" {
   source                  = "./modules/databricks_clusters"
   prefix                  = var.project
-  spark_version           = "16.4.x-scala2.12"
+  spark_version           = "15.4.x-scala2.12"
   node_type_id            = "Standard_F4s_v2"
   idle_minutes            = 15
-  num_workers             = 1
+  num_workers             = 0
   databricks_workspace_id = module.databricks_workspace.id
 }
 
