@@ -5,7 +5,7 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 
 with DAG(
-    dag_id="airflow_installation_test",
+    dag_id="airflow_installation_test_inside_folder",
     start_date=datetime(2023, 1, 1),
     schedule=None,
     catchup=False,
