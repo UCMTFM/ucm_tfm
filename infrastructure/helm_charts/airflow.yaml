@@ -44,7 +44,7 @@ dags:
   gitSync:
     enabled: true
     repo: https://github.com/UCMTFM/ucm_tfm.git
-    branch: main
+    branch: feature/adding_aks_cluster_module
     subPath: "airflow/dags"
   persistence:
     enabled: false # Do not persist DAGs (assume GitSync or baked-in)
