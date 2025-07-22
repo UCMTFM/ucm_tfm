@@ -83,7 +83,7 @@ class BaseIngestor(ABC):
 
             self.spark.sql(
                 f"""
-                CREATE TABLE IF NOT EXISTS {catalog}.bronze.{dataset}
+                CREATE TABLE IF NOT EXISTS bronze.{dataset}
                 USING DELTA
                 LOCATION '{location}'"""
             )
