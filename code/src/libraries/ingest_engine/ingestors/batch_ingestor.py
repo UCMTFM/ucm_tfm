@@ -75,7 +75,11 @@ class BatchIngestor(BaseIngestor):
             .options(**source_opts)
             .option("cloudFiles.schemaLocation", f"{bronze_path}/{datasource}/{dataset}_schema")
             .load(landing_path)
-            .withColumn("_ingested_filename", F.input_file_name())
+            .withColumn("_ingested_file_name", F.col("_metadata.file_path"))
+            .withColumn("_ingested_file_size", F.col("_metadata.file_size"))
+            .withColumn(
+                "_ingested_file_modification_time", F.col("_metadata.file_modification_time")
+            )
             .withColumn("_ingestion_time", F.current_timestamp())
         )
 
