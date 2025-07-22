@@ -33,6 +33,16 @@ resource "databricks_external_location" "lakehouse_layers" {
     ]
 }
 
+resource "databricks_grants" "lakehouse_layers_grants" {
+  for_each          = toset(var.lakehouse_external_layers)
+  external_location = databricks_external_location.lakehouse_layers[each.key].id
+
+  grant {
+    principal  = "account users"
+    privileges = ["READ FILES"]
+  }
+}
+
 # resource "databricks_secret_scope" "keyvault_scope" {
 #   name = "akv-${var.prefix}"
 
