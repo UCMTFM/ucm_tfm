@@ -75,6 +75,8 @@ class BaseIngestor(ABC):
             dataset (str): Name of the dataset.
             location (str): The storage path (ADLS) where the Delta table is located.
         """
+        catalog = self.config.get("catalog", "hive_metastore")
+        self.spark.sql(f"USE CATALOG {catalog}")
         if not self.spark.catalog.tableExists(f"bronze.{dataset}"):
             logger.info(f"Creating external table bronze.{dataset}")
             self.spark.sql("CREATE SCHEMA IF NOT EXISTS bronze")
