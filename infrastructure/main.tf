@@ -134,16 +134,16 @@ module "unity_catalog" {
 
 # Databricks Clusters
 
-module "single_node_compute" {
-  source                  = "./modules/databricks_clusters"
-  prefix                  = var.project
-  spark_version           = "15.4.x-scala2.12"
-  node_type_id            = "Standard_F4s_v2"
-  idle_minutes            = 15
-  num_workers             = 0
-  databricks_workspace_id = module.databricks_workspace.id
-  databricks_cluster_user = var.databricks_cluster_user
-}
+# module "single_node_compute" {
+#   source                  = "./modules/databricks_clusters"
+#   prefix                  = var.project
+#   spark_version           = "15.4.x-scala2.12"
+#   node_type_id            = "Standard_F4s_v2"
+#   idle_minutes            = 15
+#   num_workers             = 0
+#   databricks_workspace_id = module.databricks_workspace.id
+#   databricks_cluster_user = var.databricks_cluster_user
+# }
 
 # Azure k8s Cluster
 
