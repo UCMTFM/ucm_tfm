@@ -39,7 +39,7 @@ resource "databricks_grants" "lakehouse_layers_grants" {
 
   grant {
     principal  = "account users"
-    privileges = ["READ FILES"]
+    privileges = ["READ_FILES", "WRITE_FILES"]
   }
 }
 
