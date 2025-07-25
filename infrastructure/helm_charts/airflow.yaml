@@ -1,4 +1,5 @@
 executor: "CeleryExecutor"
+webserverSecretKey: QVJabjdQZ3lLdW9JaUF5N2MxSWZGMjNaYjZ0T21mRU8=%
 
 createUserJob:
   useHelmHooks: false
@@ -19,24 +20,10 @@ apiServer:
   args: ["bash", "-c", "exec airflow api-server --workers 2"]
   waitForMigrations:
     enabled: false
-  # resources:
-  #   requests:
-  #     cpu: 100m
-  #     memory: 128Mi
-  #   limits:
-  #     cpu: 800m
-  #     memory: 1Gi
 scheduler:
   replicas: 1
   waitForMigrations:
     enabled: false
-  # resources:
-  #   requests:
-  #     cpu: 100m
-  #     memory: 128Mi
-  #   limits:
-  #     cpu: 200m
-  #     memory: 256Mi
 statsd:
   enabled: false
 ingress:
