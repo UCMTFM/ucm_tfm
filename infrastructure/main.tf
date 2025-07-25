@@ -187,9 +187,9 @@ resource "helm_release" "mlflow" {
   name             = "mlflow-server"
   create_namespace = true
   namespace        = "mlflow"
-  repository       = "oci://registry-1.docker.io/bitnamicharts"
+  repository       = "https://community-charts.github.io/helm-charts"
   chart            = "mlflow"
-  version          = "5.1.6"
+  version          = "1.3.2"
   wait             = false
   timeout          = 300
 

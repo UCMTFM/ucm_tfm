@@ -1,6 +1,1 @@
-tracking:
-  resourcesPreset: small
-  auth:
-    enabled: true
-    username: admin
-    password: admin
+
