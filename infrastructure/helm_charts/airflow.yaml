@@ -1,5 +1,6 @@
 executor: "CeleryExecutor"
-webserverSecretKey: QVJabjdQZ3lLdW9JaUF5N2MxSWZGMjNaYjZ0T21mRU8=%
+fernetKey: QVJabjdQZ3lLdW9JaUF5N2MxSWZGMjNaYjZ0T21mRU8=%
+webserverSecretKey: f9a896a9a6ddb05e9fc3969b07d187aa
 
 createUserJob:
   useHelmHooks: false
