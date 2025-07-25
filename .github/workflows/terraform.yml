@@ -55,9 +55,9 @@ jobs:
         ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         TF_VAR_group_members: ${{vars.TF_VAR_GROUP_MEMBERS}}
         TF_VAR_azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        DATABRICKS_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        DATABRICKS_AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        DATABRICKS_AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -66,6 +66,6 @@ jobs:
         ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         TF_VAR_group_members: ${{vars.TF_VAR_GROUP_MEMBERS}}
         TF_VAR_azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        DATABRICKS_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        DATABRICKS_AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        DATABRICKS_AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

@@ -40,3 +40,8 @@ variable "databricks_cluster_user" {
   type        = string
   description = "User name for the single user of the Databricks cluster"  
 }
+
+variable "databricks_location" {
+  type        = string
+  description = "Location for the Databricks workspace"
+}
