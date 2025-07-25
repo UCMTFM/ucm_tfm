@@ -7,6 +7,12 @@ migrateDatabaseJob:
   useHelmHooks: false
   applyCustomEnv: false
 
+images:
+  airflow:
+    repository: jonathanpinzon/ucm_tfm
+    tag: airflow_latest
+    pullPolicy: Always
+
 # Services Configuration
 apiServer:
   replicas: 1

@@ -2,8 +2,8 @@ from datetime import datetime
 from pprint import pprint
 
 from airflow.models.dag import DAG
-from airflow.operators.bash import BashOperator
-from airflow.operators.empty import EmptyOperator
+from airflow.providers.standard.operators.empty import EmptyOperator
+from airflow.providers.databricks.operators.databricks_sql import DatabricksSqlOperator
 from airflow.decorators import task
 
 
@@ -24,17 +24,17 @@ with DAG(
 ) as dag:
     start_task = EmptyOperator(task_id="start")
 
-    # Task to print a simple message
-    # print_message = BashOperator(
-    #     task_id="print_message",
-    #     bash_command="echo 'Airflow installation test successful!'",
-    # )
-    #
-    # # Task to sleep for a few seconds (simulating some work)
-    # sleep_task = BashOperator(
-    #     task_id="sleep_for_5_seconds",
-    #     bash_command="sleep 5",
-    # )
+    # Example of using the Databricks SQL Operator to perform multiple operations.
+    create = DatabricksSqlOperator(
+        databricks_conn_id=connection_id,
+        sql_endpoint_name=sql_endpoint_name,
+        task_id="create_and_populate_table",
+        sql=[
+            "drop table if exists default.my_airflow_table",
+            "create table default.my_airflow_table(id int, v string)",
+            "insert into default.my_airflow_table values (1, 'test 1'), (2, 'test 2')",
+        ],
+    )
 
     end_task = EmptyOperator(task_id="end")
 
