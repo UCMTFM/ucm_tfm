@@ -1,4 +1,6 @@
 executor: "CeleryExecutor"
+fernetKey: QVJabjdQZ3lLdW9JaUF5N2MxSWZGMjNaYjZ0T21mRU8=%
+webserverSecretKey: f9a896a9a6ddb05e9fc3969b07d187aa
 
 createUserJob:
   useHelmHooks: false
@@ -14,29 +16,20 @@ images:
     pullPolicy: Always
 
 # Services Configuration
+webserver:
+  safeToEvict: true
 apiServer:
   replicas: 1
   args: ["bash", "-c", "exec airflow api-server --workers 2"]
   waitForMigrations:
     enabled: false
-  # resources:
-  #   requests:
-  #     cpu: 100m
-  #     memory: 128Mi
-  #   limits:
-  #     cpu: 800m
-  #     memory: 1Gi
+worker:
+  safeToEvict: true
 scheduler:
+  safeToEvict: true
   replicas: 1
   waitForMigrations:
     enabled: false
-  # resources:
-  #   requests:
-  #     cpu: 100m
-  #     memory: 128Mi
-  #   limits:
-  #     cpu: 200m
-  #     memory: 256Mi
 statsd:
   enabled: false
 ingress:

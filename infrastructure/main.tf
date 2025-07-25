@@ -179,7 +179,6 @@ resource "helm_release" "airflow" {
   version          = "1.17.0"
   wait             = false
   timeout          = 300
-  replace          = true
 
   values = [file("${path.root}/helm_charts/airflow.yaml")]
 }
