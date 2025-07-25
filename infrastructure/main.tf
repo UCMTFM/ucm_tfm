@@ -182,3 +182,16 @@ resource "helm_release" "airflow" {
 
   values = [file("${path.root}/helm_charts/airflow.yaml")]
 }
+
+resource "helm_release" "mlflow" {
+  name             = "mlflow-server"
+  create_namespace = true
+  namespace        = "mlflow"
+  repository       = "oci://registry-1.docker.io/bitnamicharts"
+  chart            = "mlflow"
+  version          = "5.1.6"
+  wait             = false
+  timeout          = 300
+
+  values = [file("${path.root}/helm_charts/mlflow.yaml")]
+}
