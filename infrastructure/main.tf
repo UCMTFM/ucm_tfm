@@ -104,7 +104,7 @@ module "databricks_workspace" {
   prefix              = var.project
   name                = "lakehouse"
   resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
+  location            = var.databricks_location # module.resource_group.location
   tags                = local.tags
 }
 
@@ -114,7 +114,7 @@ module "databricks_access_connector" {
   source              = "./modules/databricks_access_connector"
   prefix              = var.project
   resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
+  location            = var.databricks_location
   tags                = local.tags
   storage_account_id  = module.lakehouse_storage.id
 }
