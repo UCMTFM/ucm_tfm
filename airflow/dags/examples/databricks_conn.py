@@ -4,7 +4,7 @@ import pendulum
 
 from airflow.models.dag import DAG
 from airflow.providers.databricks.operators.databricks_sql import DatabricksSqlOperator
-from dags.enums import DatabricksClusters
+from dags.enums import DatabricksClusters, AirflowConnections
 
 with DAG(
     dag_id="databricks_sql_warehouse_example",
@@ -14,7 +14,7 @@ with DAG(
 ) as dag:
     create_table = DatabricksSqlOperator(
         task_id="show_tables",
-        databricks_conn_id="DATABRICKS_DEFAULT",
+        databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
         sql="SHOW TABLES",
         catalog="adbtfmappinovalakehouse",
         schema="bronze",
