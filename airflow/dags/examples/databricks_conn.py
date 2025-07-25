@@ -17,5 +17,4 @@ with DAG(
         sql="SHOW TABLES",
         catalog="adbtfmappinovalakehouse",
         schema="bronze",
-        do_xcom_push=True,
     )
