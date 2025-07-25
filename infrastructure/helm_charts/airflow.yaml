@@ -16,12 +16,17 @@ images:
     pullPolicy: Always
 
 # Services Configuration
+webserver:
+  safeToEvict: true
 apiServer:
   replicas: 1
   args: ["bash", "-c", "exec airflow api-server --workers 2"]
   waitForMigrations:
     enabled: false
+worker:
+  safeToEvict: true
 scheduler:
+  safeToEvict: true
   replicas: 1
   waitForMigrations:
     enabled: false
