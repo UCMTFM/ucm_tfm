@@ -3,7 +3,7 @@ from __future__ import annotations
 import pendulum
 
 from airflow.models.dag import DAG
-from airflow.providers.databricks.operators.databricks_sql import DatabricksSQLOperator
+from airflow.providers.databricks.operators.databricks_sql import DatabricksSqlOperator
 
 with DAG(
     dag_id="databricks_sql_warehouse_example",
@@ -12,7 +12,7 @@ with DAG(
     catchup=False,
     tags=["databricks", "sql"],
 ) as dag:
-    create_table = DatabricksSQLOperator(
+    create_table = DatabricksSqlOperator(
         task_id="show_tables",
         databricks_conn_id="DATABRICKS_DEFAULT",
         sql="""

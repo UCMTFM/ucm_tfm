@@ -23,19 +23,6 @@ with DAG(
     tags=["test"],
 ) as dag:
     start_task = EmptyOperator(task_id="start")
-
-    # Example of using the Databricks SQL Operator to perform multiple operations.
-    create = DatabricksSqlOperator(
-        databricks_conn_id=connection_id,
-        sql_endpoint_name=sql_endpoint_name,
-        task_id="create_and_populate_table",
-        sql=[
-            "drop table if exists default.my_airflow_table",
-            "create table default.my_airflow_table(id int, v string)",
-            "insert into default.my_airflow_table values (1, 'test 1'), (2, 'test 2')",
-        ],
-    )
-
     end_task = EmptyOperator(task_id="end")
 
     # Define the task dependencies
