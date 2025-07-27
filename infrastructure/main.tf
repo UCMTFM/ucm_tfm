@@ -97,53 +97,53 @@ resource "azurerm_storage_data_lake_gen2_path" "lakehouse_directories" {
   resource           = "directory"
 }
 
-# # Databricks Workspace
+# Databricks Workspace
 
-# module "databricks_workspace" {
-#   source              = "./modules/databricks_workspace"
-#   prefix              = var.project
-#   name                = "lakehouse"
-#   resource_group_name = module.resource_group.name
-#   location            = var.databricks_location # module.resource_group.location
-#   tags                = local.tags
-# }
+module "databricks_workspace" {
+  source              = "./modules/databricks_workspace"
+  prefix              = var.project
+  name                = "lakehouse"
+  resource_group_name = module.resource_group.name
+  location            = var.databricks_location # module.resource_group.location
+  tags                = local.tags
+}
 
-# # Databricks Access Connector
+# Databricks Access Connector
 
-# module "databricks_access_connector" {
-#   source              = "./modules/databricks_access_connector"
-#   prefix              = var.project
-#   resource_group_name = module.resource_group.name
-#   location            = var.databricks_location
-#   tags                = local.tags
-#   storage_account_id  = module.lakehouse_storage.id
-# }
+module "databricks_access_connector" {
+  source              = "./modules/databricks_access_connector"
+  prefix              = var.project
+  resource_group_name = module.resource_group.name
+  location            = var.databricks_location
+  tags                = local.tags
+  storage_account_id  = module.lakehouse_storage.id
+}
 
-# # Unity Catalog
+# Unity Catalog
 
-# module "unity_catalog" {
-#   source                         = "./modules/unity_catalog"
-#   databricks_workspace_id        = module.databricks_workspace.id
-#   prefix                         = var.project
-#   access_connector_id            = module.databricks_access_connector.id
-#   lakehouse_external_layers      = ["bronze", "silver", "gold"]
-#   lakehouse_storage_account_name = module.lakehouse_storage.account_name
-#   container_name                 = "lakehouse"
-#   admin_group_name               = azuread_group.admins.display_name
-# }
+module "unity_catalog" {
+  source                         = "./modules/unity_catalog"
+  databricks_workspace_id        = module.databricks_workspace.id
+  prefix                         = var.project
+  access_connector_id            = module.databricks_access_connector.id
+  lakehouse_external_layers      = ["bronze", "silver", "gold"]
+  lakehouse_storage_account_name = module.lakehouse_storage.account_name
+  container_name                 = "lakehouse"
+  admin_group_name               = azuread_group.admins.display_name
+}
 
-# # Databricks Clusters
+# Databricks Clusters
 
-# module "single_node_compute" {
-#   source                  = "./modules/databricks_clusters"
-#   prefix                  = var.project
-#   spark_version           = "15.4.x-scala2.12"
-#   node_type_id            = "Standard_F4s_v2"
-#   idle_minutes            = 15
-#   num_workers             = 0
-#   databricks_workspace_id = module.databricks_workspace.id
-#   databricks_cluster_user = var.databricks_cluster_user
-# }
+module "single_node_compute" {
+  source                  = "./modules/databricks_clusters"
+  prefix                  = var.project
+  spark_version           = "15.4.x-scala2.12"
+  node_type_id            = "Standard_F4s_v2"
+  idle_minutes            = 15
+  num_workers             = 0
+  databricks_workspace_id = module.databricks_workspace.id
+  databricks_cluster_user = var.databricks_cluster_user
+}
 
 # Azure k8s Cluster
 
