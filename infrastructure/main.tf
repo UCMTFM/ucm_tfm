@@ -131,11 +131,11 @@ provider "databricks" {
 }
 
 module "unity_catalog" {
-  depends_on                     = [ module.databricks_workspace ]
   providers = {
     databricks = databricks.databricks_uc
   }
 
+  depends_on                     = [ module.databricks_workspace ]
   source                         = "./modules/unity_catalog"
   databricks_workspace_id        = module.databricks_workspace.id
   prefix                         = var.project
