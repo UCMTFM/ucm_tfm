@@ -146,7 +146,7 @@ module "unity_catalog" {
   admin_group_name               = azuread_group.admins.display_name
 }
 
-# Databricks Clusters
+# Databricks Clusters 
 
 module "single_node_compute" {
   providers = {
