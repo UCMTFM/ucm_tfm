@@ -131,7 +131,7 @@ provider "databricks" {
 }
 
 module "unity_catalog" {
-  # depends_on                     = [ module.databricks_workspace ]
+  depends_on                     = [ module.databricks_workspace ]
   providers = {
     databricks = databricks.databricks_uc
   }
