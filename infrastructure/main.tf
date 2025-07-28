@@ -197,3 +197,16 @@ resource "helm_release" "airflow" {
 
   values = [file("${path.root}/helm_charts/airflow.yaml")]
 }
+
+resource "helm_release" "mlflow" {
+  name             = "mlflow-server"
+  create_namespace = true
+  namespace        = "mlflow"
+  repository       = "https://community-charts.github.io/helm-charts"
+  chart            = "mlflow"
+  version          = "1.3.2"
+  wait             = false
+  timeout          = 300
+
+  values = [file("${path.root}/helm_charts/mlflow.yaml")]
+}
