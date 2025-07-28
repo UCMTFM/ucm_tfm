@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-provider "databricks" {
-  azure_workspace_resource_id = var.databricks_workspace_id
-}
-
 resource "databricks_cluster_policy" "single_node_single_user" {
   name = "Single Node Single User Policy"
 
@@ -43,6 +39,7 @@ resource "databricks_cluster_policy" "single_node_single_user" {
 }
 
 resource "databricks_cluster" "shared_compute_cluster" {
+  provider      = databricks
   cluster_name  = "single-node-${var.prefix}"
   spark_version = var.spark_version
   node_type_id  = var.node_type_id

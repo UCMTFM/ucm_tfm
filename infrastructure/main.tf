@@ -149,6 +149,11 @@ module "unity_catalog" {
 # Databricks Clusters
 
 module "single_node_compute" {
+  providers = {
+    databricks = databricks.databricks_uc
+  }
+
+  depends_on              = [ module.databricks_workspace ]
   source                  = "./modules/databricks_clusters"
   prefix                  = var.project
   spark_version           = "15.4.x-scala2.12"
