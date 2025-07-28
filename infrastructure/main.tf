@@ -121,8 +121,21 @@ module "databricks_access_connector" {
 
 # Unity Catalog
 
+provider "databricks" {
+  azure_workspace_resource_id = module.databricks_workspace.id
+  alias                       = "databricks_uc"
+  # auth_type                   = "azure-client-secret"
+  # azure_client_id             = var.azure_client_id
+  # azure_client_secret         = var.azure_client_secret
+  # azure_tenant_id             = var.azure_tenant_id
+}
+
 module "unity_catalog" {
-  depends_on                     = [ module.databricks_workspace ]
+  # depends_on                     = [ module.databricks_workspace ]
+  providers = {
+    databricks = databricks.databricks_uc
+  }
+
   source                         = "./modules/unity_catalog"
   databricks_workspace_id        = module.databricks_workspace.id
   prefix                         = var.project
