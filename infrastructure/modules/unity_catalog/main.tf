@@ -9,6 +9,10 @@ terraform {
 
 provider "databricks" {
   azure_workspace_resource_id = var.databricks_workspace_id
+  # auth_type                   = "azure-client-secret"
+  # azure_client_id             = var.azure_client_id
+  # azure_client_secret         = var.azure_client_secret
+  # azure_tenant_id             = var.azure_tenant_id
 }
 
 resource "databricks_storage_credential" "access_connector_credential" {

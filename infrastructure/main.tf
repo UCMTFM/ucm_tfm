@@ -122,6 +122,7 @@ module "databricks_access_connector" {
 # Unity Catalog
 
 module "unity_catalog" {
+  depends_on                     = [ module.databricks_workspace ]
   source                         = "./modules/unity_catalog"
   databricks_workspace_id        = module.databricks_workspace.id
   prefix                         = var.project
