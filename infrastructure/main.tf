@@ -5,6 +5,7 @@ locals {
       project = var.project
     }
   )
+  workspace_ready = can(module.databricks_workspace.id)
 }
 
 
@@ -131,6 +132,7 @@ module "unity_catalog" {
     databricks = databricks.databricks_uc
   }
 
+  count                          = local.workspace_ready ? 1 : 0
   depends_on                     = [ module.databricks_workspace ]
   source                         = "./modules/unity_catalog"
   databricks_workspace_id        = module.databricks_workspace.id
