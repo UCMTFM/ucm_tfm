@@ -124,10 +124,10 @@ module "databricks_access_connector" {
 provider "databricks" {
   alias                       = "databricks_uc"
   azure_workspace_resource_id = module.databricks_workspace.id
-  # auth_type                   = "azure-client-secret"
-  # azure_client_id             = var.azure_client_id
-  # azure_client_secret         = var.azure_client_secret
-  # azure_tenant_id             = var.azure_tenant_id
+  auth_type                   = "azure-client-secret"
+  azure_client_id             = var.azure_client_id
+  azure_client_secret         = var.azure_client_secret
+  azure_tenant_id             = var.azure_tenant_id
 }
 
 module "unity_catalog" {
