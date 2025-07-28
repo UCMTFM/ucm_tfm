@@ -12,6 +12,10 @@ terraform {
       source  = "hashicorp/helm"
       version = "3.0.2"
     }
+    databricks = {
+      source  = "databricks/databricks"
+      version = "1.30.0"
+    }
   }
   backend "azurerm" {
     resource_group_name  = "rg-terraform-state"
