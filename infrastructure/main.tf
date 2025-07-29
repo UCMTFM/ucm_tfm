@@ -19,6 +19,14 @@ module "resource_group" {
   tags     = local.tags
 }
 
+module "databricks_resource_group" {
+  source   = "./modules/resource_group"
+  name     = "databricks"
+  prefix   = var.project
+  location = var.databricks_location
+  tags     = local.tags
+}
+
 resource "azuread_group" "admins" {
   display_name     = "adg${var.project}"
   security_enabled = true
@@ -46,6 +54,12 @@ resource "azuread_group_member" "sp_member" {
 
 resource "azurerm_role_assignment" "aad_group_rg_contributor" {
   scope                = module.resource_group.id
+  role_definition_name = "Contributor"
+  principal_id         = azuread_group.admins.object_id
+}
+
+resource "azurerm_role_assignment" "aad_group_rg_databricks_contributor" {
+  scope                = module.databricks_resource_group.id
   role_definition_name = "Contributor"
   principal_id         = azuread_group.admins.object_id
 }
@@ -104,7 +118,7 @@ module "databricks_workspace" {
   source              = "./modules/databricks_workspace"
   prefix              = var.project
   name                = "lakehouse"
-  resource_group_name = module.resource_group.name
+  resource_group_name = module.databricks_resource_group.name
   location            = var.databricks_location # module.resource_group.location
   tags                = local.tags
 }
@@ -114,7 +128,7 @@ module "databricks_workspace" {
 module "databricks_access_connector" {
   source              = "./modules/databricks_access_connector"
   prefix              = var.project
-  resource_group_name = module.resource_group.name
+  resource_group_name = module.databricks_resource_group.name
   location            = var.databricks_location
   tags                = local.tags
   storage_account_id  = module.lakehouse_storage.id
