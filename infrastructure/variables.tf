@@ -26,6 +26,18 @@ variable "azure_client_id" {
   description = "Azure Client ID for the service principal"
 }
 
+# variable "azure_client_secret" {
+#   type = string
+#   sensitive = true
+#   description = "Azure Client Secret for the service principal"
+# }
+
+# variable "azure_tenant_id" {
+#   type = string
+#   sensitive = true
+#   description = "Azure Tenant ID for the service principal"
+# }
+
 variable "lakehouse_directories" {
   description = "List of directories to be created in the lakhouse Storage Account"
   type        = list(string)
@@ -39,4 +51,9 @@ variable "landing_directories" {
 variable "databricks_cluster_user" {
   type        = string
   description = "User name for the single user of the Databricks cluster"  
+}
+
+variable "databricks_location" {
+  type        = string
+  description = "Location for the Databricks workspace"
 }

@@ -5,6 +5,7 @@ locals {
       project = var.project
     }
   )
+  workspace_ready = can(module.databricks_workspace.id)
 }
 
 
@@ -15,6 +16,14 @@ module "resource_group" {
   name     = "lakehouse"
   prefix   = var.project
   location = var.location
+  tags     = local.tags
+}
+
+module "databricks_resource_group" {
+  source   = "./modules/resource_group"
+  name     = "databricks"
+  prefix   = var.project
+  location = var.databricks_location
   tags     = local.tags
 }
 
@@ -45,6 +54,12 @@ resource "azuread_group_member" "sp_member" {
 
 resource "azurerm_role_assignment" "aad_group_rg_contributor" {
   scope                = module.resource_group.id
+  role_definition_name = "Contributor"
+  principal_id         = azuread_group.admins.object_id
+}
+
+resource "azurerm_role_assignment" "aad_group_rg_databricks_contributor" {
+  scope                = module.databricks_resource_group.id
   role_definition_name = "Contributor"
   principal_id         = azuread_group.admins.object_id
 }
@@ -103,8 +118,8 @@ module "databricks_workspace" {
   source              = "./modules/databricks_workspace"
   prefix              = var.project
   name                = "lakehouse"
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
+  resource_group_name = module.databricks_resource_group.name
+  location            = var.databricks_location # module.resource_group.location
   tags                = local.tags
 }
 
@@ -113,15 +128,26 @@ module "databricks_workspace" {
 module "databricks_access_connector" {
   source              = "./modules/databricks_access_connector"
   prefix              = var.project
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
+  resource_group_name = module.databricks_resource_group.name
+  location            = var.databricks_location
   tags                = local.tags
   storage_account_id  = module.lakehouse_storage.id
 }
 
 # Unity Catalog
 
+provider "databricks" {
+  alias                       = "databricks_uc"
+  azure_workspace_resource_id = module.databricks_workspace.id
+}
+
 module "unity_catalog" {
+  providers = {
+    databricks = databricks.databricks_uc
+  }
+
+  count                          = local.workspace_ready ? 1 : 0
+  depends_on                     = [ module.databricks_workspace ]
   source                         = "./modules/unity_catalog"
   databricks_workspace_id        = module.databricks_workspace.id
   prefix                         = var.project
@@ -132,9 +158,14 @@ module "unity_catalog" {
   admin_group_name               = azuread_group.admins.display_name
 }
 
-# Databricks Clusters
+# Databricks Clusters 
 
 module "single_node_compute" {
+  providers = {
+    databricks = databricks.databricks_uc
+  }
+
+  depends_on              = [ module.databricks_workspace ]
   source                  = "./modules/databricks_clusters"
   prefix                  = var.project
   spark_version           = "15.4.x-scala2.12"

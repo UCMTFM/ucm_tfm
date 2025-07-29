@@ -7,12 +7,9 @@ terraform {
   }
 }
 
-provider "databricks" {
-  azure_workspace_resource_id = var.databricks_workspace_id
-}
-
 resource "databricks_storage_credential" "access_connector_credential" {
-    name = "dac-${var.prefix}"
+    provider = databricks
+    name     = "dac-${var.prefix}"
 
     azure_managed_identity {
       access_connector_id = var.access_connector_id
@@ -22,6 +19,7 @@ resource "databricks_storage_credential" "access_connector_credential" {
 }
 
 resource "databricks_external_location" "lakehouse_layers" {
+    provider        = databricks
     for_each        = toset(var.lakehouse_external_layers)
     name            = "external_location_${each.key}"
     url             = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/${each.key}"
@@ -34,6 +32,7 @@ resource "databricks_external_location" "lakehouse_layers" {
 }
 
 resource "databricks_grants" "lakehouse_layers_grants" {
+  provider          = databricks
   for_each          = toset(var.lakehouse_external_layers)
   external_location = databricks_external_location.lakehouse_layers[each.key].id
 
@@ -43,6 +42,8 @@ resource "databricks_grants" "lakehouse_layers_grants" {
   }
 }
 
+
+##### NO DESCOMENTAR
 # resource "databricks_secret_scope" "keyvault_scope" {
 #   name = "akv-${var.prefix}"
 
