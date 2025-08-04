@@ -10,7 +10,7 @@ from pyspark.sql import functions as F
 
 # from pyspark.sql.window import Window
 
-exec_env = os.getenv("EXECUTION_ENV", "local")
+exec_env = os.getenv("EXECUTION_ENV", "databricks-connect")
 if exec_env == "databricks-connect":
     logger.info("Executing with databricks-connect")
     from databricks.connect import DatabricksSession as SparkSession
@@ -67,11 +67,11 @@ class BaseProcessor(ABC):
         stored in Databricks secret scope.
         """
         # dbutils = DBUtils(self.spark)
-        storage_account_name = self.config.get("storage_account_name")
+        storage_account_name = self.config.get("lakehouse_storage_account_name")
         # secret_scope = self.config.get("secret_scope")
         # secret_key_name = self.config.get("secret_key_name")
         # storage_account_key = dbutils.secrets.get(scope=secret_scope, key=secret_key_name)
-        storage_account_key = self.config.get("secret_key")
+        storage_account_key = self.config.get("lakehouse_storage_account_key")
         self.spark.conf.set(
             f"fs.azure.account.key.{storage_account_name}.dfs.core.windows.net", storage_account_key
         )
@@ -83,7 +83,7 @@ class BaseProcessor(ABC):
         Returns:
             DataFrame: The loaded data from the bronze layer.
         """
-        last_ingest_processed = self.config.get("last_ingest_processed_date")
+        last_ingest_processed = self.config.get("last_ingest_processed_date", None)
         source_config = self.config.get("source")
         schema = source_config.get("schema")
         table = source_config.get("table")
@@ -99,15 +99,6 @@ class BaseProcessor(ABC):
             logger.info(f"This is the first processing for table {schema}.{table}")
             df = self.spark.table(f"{schema}.{table}")
 
-        timestamp_col = self.config.get("timestamp_col")
-        if timestamp_col:
-            df = df.withColumn(
-                timestamp_col,
-                F.when(F.col(timestamp_col).isNull(), F.current_timestamp()).otherwise(
-                    F.col(timestamp_col)
-                ),
-            )
-
         logger.info("Bronze data read successfully")
         return df
 
@@ -120,7 +111,7 @@ class BaseProcessor(ABC):
         Args:
             df (DataFrame): Processed DataFrame to write.
         """
-        account = self.config.get("storage_account_name")
+        account = self.config.get("lakehouse_storage_account_name")
         lkh_container_name = self.config.get("lakehouse_container_name")
         silver_path = f"abfss://{lkh_container_name}@{account}.dfs.core.windows.net/silver"
         datasource = self.config.get("datasource")
@@ -140,10 +131,12 @@ class BaseProcessor(ABC):
         (
             df.write.format("delta")
             .mode("append")
-            .partitionBy("year", "month", "day")
+            .partitionBy("Anio")
             .option("path", location)
+            .option("mergeSchema", "true")
             .saveAsTable(f"{schema}.{table}")
         )
+        logger.info("Silver data written successfully")
 
     def update_last_processed(self, df: DF) -> None:
         """
