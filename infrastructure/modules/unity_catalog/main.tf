@@ -38,7 +38,7 @@ resource "databricks_grants" "lakehouse_layers_grants" {
 
   grant {
     principal  = "account users"
-    privileges = ["READ_FILES", "WRITE_FILES", "CREATE_EXTERNAL_TABLE"]
+    privileges = ["READ_FILES", "WRITE_FILES", "CREATE_EXTERNAL_TABLE", "CREATE_MANAGED_STORAGE" ]
   }
 }
 
