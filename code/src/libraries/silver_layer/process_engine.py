@@ -1,5 +1,7 @@
 from loguru import logger
-from silver_layer.registry import PROCESSOR_REGISTRY
+
+# from silver_layer.registry import PROCESSOR_REGISTRY
+from registry import PROCESSOR_REGISTRY
 
 
 class ProcessorEngine:
@@ -37,12 +39,11 @@ class ProcessorEngine:
         """
         Execute the data processing pipeline for the given dataset.
         """
-        logger.info(f"Starting the ingestion for dataset {self.dataset}")
         self.processor.process()
 
 
 if __name__ == "__main__":
-    dataset = "climate"
-    config_path = f"./config/silver/{dataset}_config.json"
+    dataset = "detalle_facturas"
+    config_path = f"./config_files/silver/{dataset}_config.json"
     engine = ProcessorEngine(dataset, config_path)
     engine.process()

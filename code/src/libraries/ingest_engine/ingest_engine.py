@@ -43,7 +43,7 @@ class Engine:
 
 
 if __name__ == "__main__":
-    dataset = "detalle_facturas"
+    dataset = "clientes"
     config_path = f"./config_files/bronze/{dataset}_config.json"
     workload = "batch"
     engine = Engine(workload, config_path)
