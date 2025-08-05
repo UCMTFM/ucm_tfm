@@ -76,31 +76,36 @@ class BaseProcessor(ABC):
             f"fs.azure.account.key.{storage_account_name}.dfs.core.windows.net", storage_account_key
         )
 
-    def read_bronze_table(self) -> DF:
+    def read_table(self, schema: str, table: str, last_ingest_processed: str) -> DF:
         """
         Read data from the bronze table, optionally filtered by the last processed timestamp.
 
         Returns:
             DataFrame: The loaded data from the bronze layer.
         """
-        last_ingest_processed = self.config.get("last_ingest_processed_date", None)
-        source_config = self.config.get("source")
-        schema = source_config.get("schema")
-        table = source_config.get("table")
+        catalog = self.config.get("catalog")
+        self.spark.sql(f"USE CATALOG {catalog}")
 
         if last_ingest_processed:
             logger.info(
-                f"The last data processed were ingested on the date {last_ingest_processed}"
+                f"Reading data of table {schema}.{table} ingested after {last_ingest_processed}"
             )
             df = self.spark.table(f"{schema}.{table}").filter(
                 F.col("_ingestion_time") > F.lit(last_ingest_processed).cast("timestamp")
             )
         else:
-            logger.info(f"This is the first processing for table {schema}.{table}")
+            logger.info(f"Reading entire dataset contained on table {schema}.{table}")
             df = self.spark.table(f"{schema}.{table}")
 
-        logger.info("Bronze data read successfully")
+        logger.info("Data read successfully")
         return df
+
+    def read_bronze_table(self) -> DF:
+        last_ingest_processed = self.config.get("last_ingest_processed_date", "")
+        source_config = self.config.get("source")
+        schema = source_config.get("schema")
+        table = source_config.get("table")
+        return self.read_table(schema, table, last_ingest_processed)
 
     def write_delta_table(self, df: DF) -> None:
         """
