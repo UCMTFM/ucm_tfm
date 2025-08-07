@@ -16,16 +16,6 @@ class DetalleNotasCreditoProcessor(BaseProcessor):
         """
         super().__init__(config_path)
 
-    def imputations(self, df: DF) -> DF:
-        logger.info("Starting imputations on detalle_notas_credito data")
-        imputation_config = self.config.get("imputations", {})
-        for column, value in imputation_config.items():
-            df = df.withColumn(
-                column, F.when(F.col(column).isNull(), value).otherwise(F.col(column))
-            )
-        logger.info("Imputations completed successfully")
-        return df
-
     def transformations(self, df: DF) -> DF:
         df_transformed = (
             df.select(

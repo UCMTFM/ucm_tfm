@@ -3,6 +3,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 
+from delta.tables import DeltaTable
 from loguru import logger
 
 # from pyspark.dbutils import DBUtils
@@ -63,6 +64,16 @@ class BaseProcessor(ABC):
         """
         pass
 
+    def imputations(self, df: DF) -> DF:
+        logger.info("Starting imputations on detalle_notas_credito data")
+        imputation_config = self.config.get("imputations", {})
+        for column, value in imputation_config.items():
+            df = df.withColumn(
+                column, F.when(F.col(column).isNull(), value).otherwise(F.col(column))
+            )
+        logger.info("Imputations completed successfully")
+        return df
+
     def connect_to_storage_account(self) -> None:
         """
         Configure Spark to access Azure Data Lake Storage using secrets
@@ -98,7 +109,7 @@ class BaseProcessor(ABC):
         logger.info("Data read successfully")
         return df
 
-    def get_condition(self) -> Column:
+    def get_condition(self, table_name: str) -> Column:
         """
         Get the filter condition for the DataFrame.
 
@@ -108,11 +119,11 @@ class BaseProcessor(ABC):
         last_ingest_processed = self.config.get("last_ingest_processed_date", "")
         dataset = self.config.get("dataset")
         if last_ingest_processed:
-            if "facturas" in dataset:
+            if "facturas" in dataset and "detalle" in table_name:
                 condition = (
                     F.col("_ingestion_time") > F.lit(last_ingest_processed).cast("timestamp")
                 ) & (F.col("Cantidad") > 0)
-            elif "notas_credito" in dataset:
+            elif "notas_credito" in dataset and "detalle" in table_name:
                 condition = (
                     F.col("_ingestion_time") > F.lit(last_ingest_processed).cast("timestamp")
                 ) & (F.col("Devolucion") + F.col("Rotacion") > 0)
@@ -133,25 +144,8 @@ class BaseProcessor(ABC):
         source_config = self.config.get("sources")
         schema = source_config.get("main_schema")
         table = source_config.get("main_table")
-        condition = self.get_condition()
+        condition = self.get_condition(table)
         return self.read_table(schema, table, condition)
-
-    def check_if_table_exists(self, schema: str, table: str) -> bool:
-        """
-        Check if a table exists in the specified schema.
-
-        Args:
-            schema (str): The schema name.
-            table (str): The table name.
-
-        Returns:
-            bool: True if the table exists, False otherwise.
-        """
-        try:
-            self.spark.table(f"{schema}.{table}")
-            return True
-        except Exception:
-            return False
 
     def write_delta_table(self, df: DF) -> None:
         """
@@ -178,15 +172,21 @@ class BaseProcessor(ABC):
         self.spark.sql(f"USE CATALOG {catalog}")
 
         self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS silver MANAGED LOCATION '{silver_path}'")
-        table_exists = self.check_if_table_exists(schema, table)
+        table_exists = self.spark.catalog.tableExists(f"{schema}.{table}")
         if table_exists:
+            delta_table = DeltaTable.forName(self.spark, f"{schema}.{table}")
+
             (
-                df.write.format("delta")
-                .mode("append")
-                .option("path", location)
-                .option("mergeSchema", "true")
-                .saveAsTable(f"{schema}.{table}")
+                delta_table.alias("target")
+                .merge(df.alias("source"), "target.IdFactura = source.IdFactura")
+                .whenMatchedUpdateAll()
+                .whenNotMatchedInsertAll()
+                .execute()
             )
+            last_op = delta_table.history(1).collect()[0]
+            metrics = last_op.operationMetrics
+            logger.info(f"Inserted records: {metrics['numTargetRowsInserted']}")
+            logger.info(f"Updated records: {metrics['numTargetRowsUpdated']}")
         else:
             (
                 df.write.format("delta")

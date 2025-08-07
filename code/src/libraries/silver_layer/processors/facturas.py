@@ -87,7 +87,7 @@ class FacturasProcessor(BaseProcessor):
         sources = self.config.get("sources")
         detalle_schema = sources.get("detalle_schema")
         detalle_table = sources.get("detalle_table")
-        condition = self.get_condition()
+        condition = self.get_condition(detalle_table)
         df_details = self.read_table(detalle_schema, detalle_table, condition)
         df_details_grouped = df_details.groupBy("IdFactura").agg(
             F.sum("Subtotal").alias("Subtotal"),
@@ -113,7 +113,7 @@ class FacturasProcessor(BaseProcessor):
             DataFrame: The joined DataFrame.
         """
         logger.info("Joining facturas with detalle_facturas data")
-        df_joined = df.join(df_details, on="IdFactura", how="left").withColumn(
+        df_joined = df.join(df_details, on="IdFactura", how="inner").withColumn(
             "PorcentajeRetencion", F.round((F.col("ValorRetencion") * 100) / F.col("Subtotal"), 2)
         )
         return df_joined

@@ -65,7 +65,7 @@ class NotasCreditoProcessor(BaseProcessor):
         sources = self.config.get("sources")
         detalle_schema = sources.get("detalle_schema")
         detalle_table = sources.get("detalle_table")
-        condition = self.get_condition()
+        condition = self.get_condition(detalle_table)
         df_details = self.read_table(detalle_schema, detalle_table, condition)
         df_details_grouped = df_details.groupBy("IdFactura").agg(
             F.sum("Devolucion").alias("Devolucion"),
@@ -84,7 +84,7 @@ class NotasCreditoProcessor(BaseProcessor):
         sources = self.config.get("sources")
         detalle_schema = sources.get("detalle_facturas_schema")
         detalle_table = sources.get("detalle_facturas_table")
-        condition = self.get_condition()
+        condition = self.get_condition(detalle_table)
         df_det = self.read_table(detalle_schema, detalle_table, condition)
         df_type_2_candidates = (
             df_det.filter(F.col("Cantidad") == F.col("Devolucion") + F.col("Rotacion"))
@@ -128,7 +128,7 @@ class NotasCreditoProcessor(BaseProcessor):
     def add_detail_data(df: DF, df_details: DF, df_type_2: DF) -> DF:
         logger.info("Joining notas_credito with detalle_notas_credito data")
         df_joined_det = df.join(df_details, on="IdFactura", how="left")
-        df_classified = df_joined_det.join(df_type_2, on="IdFactura", how="left").withColumn(
+        df_classified = df_joined_det.join(df_type_2, on="IdFactura", how="inner").withColumn(
             "Tipo", F.when(F.col("Tipo").isNull(), F.lit(5)).otherwise(F.col("Tipo"))
         )
         return df_classified

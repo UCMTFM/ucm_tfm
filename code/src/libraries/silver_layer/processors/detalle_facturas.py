@@ -60,6 +60,7 @@ class DetalleFacturasProcessor(BaseProcessor):
     def process(self):
         logger.info(f"Starting processing of dataset {self.config.get('dataset')}")
         df = self.read_bronze_table()
-        df_transformed = self.transformations(df)
+        df_imputed = self.imputations(df)
+        df_transformed = self.transformations(df_imputed)
         self.write_delta_table(df_transformed)
         self.update_last_processed(df_transformed)
