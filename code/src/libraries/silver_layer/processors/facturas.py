@@ -84,9 +84,11 @@ class FacturasProcessor(BaseProcessor):
         Returns:
             DataFrame: The loaded data from the detalle_facturas table.
         """
-        logger.info("Reading detalle_facturas data from silver layer")
-        last_ingest_processed_date = self.config.get("last_ingest_processed_date", "")
-        df_details = self.read_table("silver", "detalle_facturas", last_ingest_processed_date)
+        sources = self.config.get("sources")
+        detalle_schema = sources.get("detalle_schema")
+        detalle_table = sources.get("detalle_table")
+        condition = self.get_condition()
+        df_details = self.read_table(detalle_schema, detalle_table, condition)
         df_details_grouped = df_details.groupBy("IdFactura").agg(
             F.sum("Subtotal").alias("Subtotal"),
             F.sum("Total").alias("Total"),
@@ -97,13 +99,6 @@ class FacturasProcessor(BaseProcessor):
         )
         logger.info("Detail data computed successfully")
         return df_details_grouped
-
-    # def read_client_data(self) -> DF:
-    #     logger.info("Reading cliente data from bronze layer")
-    #     last_ingest_processed_date = self.config.get("last_ingest_processed_date", "")
-    #     df_clientes = self.read_table("silver", "clientes", last_ingest_processed_date)
-    #     logger.info("Client data read successfully")
-    #     return df_clientes
 
     @staticmethod
     def add_detail_data(df: DF, df_details: DF) -> DF:
@@ -119,7 +114,7 @@ class FacturasProcessor(BaseProcessor):
         """
         logger.info("Joining facturas with detalle_facturas data")
         df_joined = df.join(df_details, on="IdFactura", how="left").withColumn(
-            "PorcentajeRetencion", (F.col("ValorRetencion") * 100) / F.col("Subtotal")
+            "PorcentajeRetencion", F.round((F.col("ValorRetencion") * 100) / F.col("Subtotal"), 2)
         )
         return df_joined
 

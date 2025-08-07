@@ -32,7 +32,6 @@ class DetalleFacturasProcessor(BaseProcessor):
                 "FechaCreacion",
                 "_ingestion_time",
             )
-            .withColumnRenamed("IdDetalle", "Id")
             .withColumnRenamed("Descuento", "ValorDescuento")
             .withColumnRenamed("Iva", "ValorIva")
             .withColumnRenamed("ISPPorcentaje", "PorcentajeImpuestoSaludable")
@@ -46,7 +45,14 @@ class DetalleFacturasProcessor(BaseProcessor):
                 F.round(F.col("Subtotal") * (F.col("PorcentajeImpuestoSaludable") / 100), 2),
             )
             .withColumn(
-                "Total", F.round(F.col("Subtotal") - F.col("ValorDescuento") + F.col("ValorIva"), 2)
+                "Total",
+                F.round(
+                    F.col("Subtotal")
+                    - F.col("ValorDescuento")
+                    + F.col("ValorIva")
+                    + F.col("ValorImpuestoSaludable"),
+                    2,
+                ),
             )
         )
         return df_transformed
