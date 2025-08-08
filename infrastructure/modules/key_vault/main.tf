@@ -25,17 +25,22 @@ resource "azurerm_key_vault_access_policy" "terraform" {
   ]
 }
 
-resource "azurerm_role_assignment" "secrets_user_members" {
-  for_each             = toset(var.member_ids)
-  principal_id         = each.key
-  role_definition_name = "Key Vault Secrets User"
-  scope                = azurerm_key_vault.kv.id
+resource "azurerm_key_vault_access_policy" "members" {
+  for_each    = toset(var.member_ids)
+  key_vault_id = azurerm_key_vault.kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = each.key
+
+  secret_permissions = ["List", "Get", "Set", "Delete"]
 }
 
-resource "azurerm_role_assignment" "secrets_user_databricks" {
-  principal_id         = var.access_connector_id
-  role_definition_name = "Key Vault Secrets User"
-  scope                = azurerm_key_vault.kv.id
+# Para Databricks (si quieres que lea secretos desde el KV):
+resource "azurerm_key_vault_access_policy" "databricks" {
+  key_vault_id = azurerm_key_vault.kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = var.access_connector_guid
+
+  secret_permissions = ["Get", "List"]
 }
 
 resource "azurerm_key_vault_secret" "lakehouse_secret" {
