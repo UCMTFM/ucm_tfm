@@ -43,6 +43,8 @@ resource "azurerm_key_vault_secret" "lakehouse_secret" {
   value        = var.lakehouse_stg_account_key
   key_vault_id = azurerm_key_vault.kv.id
   content_type = "text/plain"
+
+  depends_on = [azurerm_key_vault_access_policy.terraform]
 }
 
 resource "azurerm_key_vault_secret" "landing_secret" {
@@ -50,4 +52,6 @@ resource "azurerm_key_vault_secret" "landing_secret" {
   value        = var.landing_stg_account_key
   key_vault_id = azurerm_key_vault.kv.id
   content_type = "text/plain"
+
+  depends_on = [azurerm_key_vault_access_policy.terraform]
 }

@@ -147,7 +147,7 @@ module "key_vault" {
   member_ids                = local.admin_member_ids
   lakehouse_stg_account_key = module.lakehouse_storage.primary_access_key
   landing_stg_account_key   = module.landing_storage.primary_access_key
-  access_connector_id       = module.databricks_access_connector.id
+  access_connector_id       = module.databricks_access_connector.guid
 }
 
 # Unity Catalog
