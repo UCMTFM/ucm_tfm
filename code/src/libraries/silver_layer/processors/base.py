@@ -176,9 +176,10 @@ class BaseProcessor(ABC):
         if table_exists:
             delta_table = DeltaTable.forName(self.spark, f"{schema}.{table}")
 
+            key = "IdDetalle" if "detalle" in table else "IdFactura"
             (
                 delta_table.alias("target")
-                .merge(df.alias("source"), "target.IdFactura = source.IdFactura")
+                .merge(df.alias("source"), f"target.{key} = source.{key}")
                 .whenMatchedUpdateAll()
                 .whenNotMatchedInsertAll()
                 .execute()
