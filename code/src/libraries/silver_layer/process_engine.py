@@ -43,7 +43,7 @@ class ProcessorEngine:
 
 
 if __name__ == "__main__":
-    dataset = "detalle_facturas"
+    dataset = "notas_credito"
     config_path = f"./config_files/silver/{dataset}_config.json"
     engine = ProcessorEngine(dataset, config_path)
     engine.process()

@@ -1,12 +1,15 @@
 import json
 import os
+import re
 from abc import ABC, abstractmethod
 
+from delta.tables import DeltaTable
 from loguru import logger
 
 # from pyspark.dbutils import DBUtils
 from pyspark.sql import DataFrame as DF
 from pyspark.sql import functions as F
+from pyspark.sql.column import Column
 
 # from pyspark.sql.window import Window
 
@@ -61,6 +64,16 @@ class BaseProcessor(ABC):
         """
         pass
 
+    def imputations(self, df: DF) -> DF:
+        logger.info("Starting imputations on detalle_notas_credito data")
+        imputation_config = self.config.get("imputations", {})
+        for column, value in imputation_config.items():
+            df = df.withColumn(
+                column, F.when(F.col(column).isNull(), value).otherwise(F.col(column))
+            )
+        logger.info("Imputations completed successfully")
+        return df
+
     def connect_to_storage_account(self) -> None:
         """
         Configure Spark to access Azure Data Lake Storage using secrets
@@ -76,31 +89,63 @@ class BaseProcessor(ABC):
             f"fs.azure.account.key.{storage_account_name}.dfs.core.windows.net", storage_account_key
         )
 
-    def read_bronze_table(self) -> DF:
+    def read_table(self, schema: str, table: str, condition: Column = F.lit(True)) -> DF:
         """
         Read data from the bronze table, optionally filtered by the last processed timestamp.
 
         Returns:
             DataFrame: The loaded data from the bronze layer.
         """
-        last_ingest_processed = self.config.get("last_ingest_processed_date", None)
-        source_config = self.config.get("source")
-        schema = source_config.get("schema")
-        table = source_config.get("table")
+        catalog = self.config.get("catalog")
+        self.spark.sql(f"USE CATALOG {catalog}")
 
-        if last_ingest_processed:
-            logger.info(
-                f"The last data processed were ingested on the date {last_ingest_processed}"
-            )
-            df = self.spark.table(f"{schema}.{table}").filter(
-                F.col("_ingestion_time") > F.lit(last_ingest_processed).cast("timestamp")
-            )
-        else:
-            logger.info(f"This is the first processing for table {schema}.{table}")
-            df = self.spark.table(f"{schema}.{table}")
+        pattern = r"'([^']*)'"
+        condition_str = re.findall(pattern, str(condition))[0]
+        logger.info(
+            f"Reading data of table {schema}.{table} that met the condition '{condition_str}'"
+        )
+        df = self.spark.table(f"{schema}.{table}").filter(condition)
 
-        logger.info("Bronze data read successfully")
+        logger.info("Data read successfully")
         return df
+
+    def get_condition(self, table_name: str) -> Column:
+        """
+        Get the filter condition for the DataFrame.
+
+        Returns:
+            Column: The filter condition based on the last processed date.
+        """
+        last_ingest_processed = self.config.get("last_ingest_processed_date", "")
+        dataset = self.config.get("dataset")
+        if last_ingest_processed:
+            if "facturas" in dataset and "detalle" in table_name:
+                condition = (
+                    F.col("_ingestion_time") > F.lit(last_ingest_processed).cast("timestamp")
+                ) & (F.col("Cantidad") > 0)
+            elif "notas_credito" in dataset and "detalle" in table_name:
+                condition = (
+                    F.col("_ingestion_time") > F.lit(last_ingest_processed).cast("timestamp")
+                ) & (F.col("Devolucion") + F.col("Rotacion") > 0)
+            else:
+                condition = F.col("_ingestion_time") > F.lit(last_ingest_processed).cast(
+                    "timestamp"
+                )
+        else:
+            if "facturas" in dataset:
+                condition = F.col("Cantidad") > 0
+            elif "notas_credito" in dataset:
+                condition = F.col("Devolucion") + F.col("Rotacion") > 0
+            else:
+                condition = F.lit(True)
+        return condition
+
+    def read_bronze_table(self) -> DF:
+        source_config = self.config.get("sources")
+        schema = source_config.get("main_schema")
+        table = source_config.get("main_table")
+        condition = self.get_condition(table)
+        return self.read_table(schema, table, condition)
 
     def write_delta_table(self, df: DF) -> None:
         """
@@ -127,15 +172,31 @@ class BaseProcessor(ABC):
         self.spark.sql(f"USE CATALOG {catalog}")
 
         self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS silver MANAGED LOCATION '{silver_path}'")
+        table_exists = self.spark.catalog.tableExists(f"{schema}.{table}")
+        if table_exists:
+            delta_table = DeltaTable.forName(self.spark, f"{schema}.{table}")
 
-        (
-            df.write.format("delta")
-            .mode("append")
-            .partitionBy("Anio")
-            .option("path", location)
-            .option("mergeSchema", "true")
-            .saveAsTable(f"{schema}.{table}")
-        )
+            key = "IdDetalle" if "detalle" in table else "IdFactura"
+            (
+                delta_table.alias("target")
+                .merge(df.alias("source"), f"target.{key} = source.{key}")
+                .whenMatchedUpdateAll()
+                .whenNotMatchedInsertAll()
+                .execute()
+            )
+            last_op = delta_table.history(1).collect()[0]
+            metrics = last_op.operationMetrics
+            logger.info(f"Inserted records: {metrics['numTargetRowsInserted']}")
+            logger.info(f"Updated records: {metrics['numTargetRowsUpdated']}")
+        else:
+            (
+                df.write.format("delta")
+                .mode("append")
+                .partitionBy("Anio")
+                .option("path", location)
+                .option("mergeSchema", "true")
+                .saveAsTable(f"{schema}.{table}", overwrite=False)
+            )
         logger.info("Silver data written successfully")
 
     def update_last_processed(self, df: DF) -> None:
