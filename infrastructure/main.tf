@@ -136,6 +136,11 @@ module "databricks_access_connector" {
 
 # Secrets Vault
 
+data "azuread_group_members" "admins" {
+  group_object_id = azuread_group.admins.id
+  depends_on      = [azuread_group_member.members]
+}
+
 module "key_vault" {
   source                    = "./modules/key_vault"
   prefix                    = var.project
@@ -143,7 +148,7 @@ module "key_vault" {
   location                  = module.resource_group.location
   sku                       = "standard"
   tags                      = local.tags
-  member_ids                = data.azuread_user.members[*].object_id
+  member_ids                = data.azuread_group_members.admins.members[*].object_id
   lakehouse_stg_account_key = module.lakehouse_storage.primary_access_key
   landing_stg_account_key   = module.landing_storage.primary_access_key
   access_connector_id       = module.databricks_access_connector.id
