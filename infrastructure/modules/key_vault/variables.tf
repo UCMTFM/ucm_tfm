@@ -36,7 +36,7 @@ variable "landing_stg_account_key" {
   sensitive   = true
 }
 
-variable "access_connector_id" {
+variable "access_connector_guid" {
   type        = string
   description = "ID of the Databricks Access Connector"
 }
