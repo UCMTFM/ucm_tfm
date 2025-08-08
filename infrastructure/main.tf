@@ -134,6 +134,21 @@ module "databricks_access_connector" {
   storage_account_id  = module.lakehouse_storage.id
 }
 
+# Secrets Vault
+
+module "key_vault" {
+  source                    = "./modules/key_vault"
+  prefix                    = var.project
+  resource_group_name       = module.resource_group.name
+  location                  = module.resource_group.location
+  sku                       = "standard"
+  tags                      = local.tags
+  member_ids                = data.azuread_user.members[*].object_id
+  lakehouse_stg_account_key = module.lakehouse_storage.primary_access_key
+  landing_stg_account_key   = module.landing_storage.primary_access_key
+  access_connector_id       = module.databricks_access_connector.id
+}
+
 # Unity Catalog
 
 provider "databricks" {
@@ -156,6 +171,8 @@ module "unity_catalog" {
   lakehouse_storage_account_name = module.lakehouse_storage.account_name
   container_name                 = "lakehouse"
   admin_group_name               = azuread_group.admins.display_name
+  key_vault_id                   = module.key_vault.key_vault_id
+  key_vault_uri                  = module.key_vault.key_vault_uri
 }
 
 # Databricks Clusters 

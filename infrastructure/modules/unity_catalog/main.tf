@@ -42,13 +42,11 @@ resource "databricks_grants" "lakehouse_layers_grants" {
   }
 }
 
+resource "databricks_secret_scope" "keyvault_scope" {
+  name = "akv-${var.prefix}"
 
-##### NO DESCOMENTAR
-# resource "databricks_secret_scope" "keyvault_scope" {
-#   name = "akv-${var.prefix}"
-
-#   keyvault_metadata {
-#     dns_name    = var.key_vault_uri
-#     resource_id = var.key_vault_id
-#   }
-# }
+  keyvault_metadata {
+    dns_name    = var.key_vault_uri
+    resource_id = var.key_vault_id
+  }
+}
