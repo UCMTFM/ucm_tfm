@@ -30,11 +30,10 @@ class BaseIngestor(ABC):
             config_path (str): Path to the JSON configuration file.
         """
         self.spark = SparkSession.builder.getOrCreate()
+        self.dbutils = DBUtils(self.spark)
 
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        self.config = config
+        cfg_str = self.dbutils.fs.head(config_path, 10_000_000)
+        self.config = json.loads(cfg_str)
         self.connect_to_storage_accounts()
 
     @abstractmethod
@@ -51,16 +50,15 @@ class BaseIngestor(ABC):
         in Databricks secrets. Sets the necessary Spark configuration to allow
         access to the storage account.
         """
-        dbutils = DBUtils(self.spark)
         secret_scope = self.config.get("secret_scope")
 
         lkh_account_name = self.config.get("lakehouse_storage_account_name")
         lkh_secret_key_name = self.config.get("lakehouse_secret_key_name")
-        lkh_account_key = dbutils.secrets.get(scope=secret_scope, key=lkh_secret_key_name)
+        lkh_account_key = self.dbutils.secrets.get(scope=secret_scope, key=lkh_secret_key_name)
 
         lnd_account_name = self.config.get("landing_storage_account_name")
         lnd_secret_key_name = self.config.get("landing_secret_key_name")
-        lnd_account_key = dbutils.secrets.get(scope=secret_scope, key=lnd_secret_key_name)
+        lnd_account_key = self.dbutils.secrets.get(scope=secret_scope, key=lnd_secret_key_name)
 
         self.spark.conf.set(
             f"fs.azure.account.key.{lkh_account_name}.dfs.core.windows.net", lkh_account_key
