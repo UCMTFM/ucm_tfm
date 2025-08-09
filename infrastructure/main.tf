@@ -115,40 +115,40 @@ resource "azurerm_storage_data_lake_gen2_path" "lakehouse_directories" {
 
 # Databricks Workspace
 
-module "databricks_workspace" {
-  source              = "./modules/databricks_workspace"
-  prefix              = var.project
-  name                = "lakehouse"
-  resource_group_name = module.databricks_resource_group.name
-  location            = var.databricks_location # module.resource_group.location
-  tags                = local.tags
-}
+# module "databricks_workspace" {
+#   source              = "./modules/databricks_workspace"
+#   prefix              = var.project
+#   name                = "lakehouse"
+#   resource_group_name = module.databricks_resource_group.name
+#   location            = var.databricks_location # module.resource_group.location
+#   tags                = local.tags
+# }
 
-# Databricks Access Connector
+# # Databricks Access Connector
 
-module "databricks_access_connector" {
-  source              = "./modules/databricks_access_connector"
-  prefix              = var.project
-  resource_group_name = module.databricks_resource_group.name
-  location            = var.databricks_location
-  tags                = local.tags
-  storage_account_id  = module.lakehouse_storage.id
-}
+# module "databricks_access_connector" {
+#   source              = "./modules/databricks_access_connector"
+#   prefix              = var.project
+#   resource_group_name = module.databricks_resource_group.name
+#   location            = var.databricks_location
+#   tags                = local.tags
+#   storage_account_id  = module.lakehouse_storage.id
+# }
 
 # Secrets Vault
 
-module "key_vault" {
-  source                    = "./modules/key_vault"
-  prefix                    = var.project
-  resource_group_name       = module.resource_group.name
-  location                  = module.resource_group.location
-  sku                       = "standard"
-  tags                      = local.tags
-  member_ids                = local.admin_member_ids
-  lakehouse_stg_account_key = module.lakehouse_storage.primary_access_key
-  landing_stg_account_key   = module.landing_storage.primary_access_key
-  access_connector_guid     = module.databricks_access_connector.guid
-}
+# module "key_vault" {
+#   source                    = "./modules/key_vault"
+#   prefix                    = var.project
+#   resource_group_name       = module.resource_group.name
+#   location                  = module.resource_group.location
+#   sku                       = "standard"
+#   tags                      = local.tags
+#   member_ids                = local.admin_member_ids
+#   lakehouse_stg_account_key = module.lakehouse_storage.primary_access_key
+#   landing_stg_account_key   = module.landing_storage.primary_access_key
+#   access_connector_guid     = module.databricks_access_connector.guid
+# }
 
 # Unity Catalog
 
