@@ -1,6 +1,12 @@
-# from ingest_engine.registry import INGESTOR_REGISTRY
+import os
+
 from loguru import logger
-from registry import INGESTOR_REGISTRY
+
+exec_env = os.getenv("EXECUTION_ENV", "local")
+if exec_env == "databricks-connect":
+    from registry import INGESTOR_REGISTRY
+else:
+    from bronze_layer.registry import INGESTOR_REGISTRY
 
 
 class Engine:
@@ -43,7 +49,7 @@ class Engine:
 
 
 if __name__ == "__main__":
-    dataset = "clientes"
+    dataset = "facturas"
     config_path = f"./config_files/bronze/{dataset}_config.json"
     workload = "batch"
     engine = Engine(workload, config_path)

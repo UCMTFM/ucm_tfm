@@ -1,0 +1,22 @@
+{
+    "lakehouse_storage_account_name": "statfmappinovalakehouse",
+    "lakehouse_container_name": "lakehouse",
+    "secret_scope": "akv-tfmappinova",
+    "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
+    "datasource": "internal_system",
+    "dataset": "notas_credito",
+    "catalog": "adbtfmappinovalakehouse",
+    "sources": {
+        "main_schema": "bronze",
+        "main_table": "facturas",
+        "detalle_schema": "silver",
+        "detalle_table": "detalle_notas_credito",
+        "detalle_facturas_schema": "bronze",
+        "detalle_facturas_table": "detalle_facturas"
+    },
+    "sink": {
+        "schema": "silver",
+        "table": "notas_credito"
+    },
+    "last_ingest_processed_date": "2025-08-08 13:19:20.077"
+}

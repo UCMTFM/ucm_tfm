@@ -3,10 +3,9 @@ import os
 from abc import ABC, abstractmethod
 
 from loguru import logger
+from pyspark.dbutils import DBUtils
 
-# from pyspark.dbutils import DBUtils
-
-exec_env = os.getenv("EXECUTION_ENV", "databricks-connect")
+exec_env = os.getenv("EXECUTION_ENV", "local")
 if exec_env == "databricks-connect":
     logger.info("Executing with databricks-connect")
     from databricks.connect import DatabricksSession as SparkSession
@@ -52,14 +51,17 @@ class BaseIngestor(ABC):
         in Databricks secrets. Sets the necessary Spark configuration to allow
         access to the storage account.
         """
-        # dbutils = DBUtils(self.spark)
+        dbutils = DBUtils(self.spark)
+        secret_scope = self.config.get("secret_scope")
+
         lkh_account_name = self.config.get("lakehouse_storage_account_name")
+        lkh_secret_key_name = self.config.get("lakehouse_secret_key_name")
+        lkh_account_key = dbutils.secrets.get(scope=secret_scope, key=lkh_secret_key_name)
+
         lnd_account_name = self.config.get("landing_storage_account_name")
-        # secret_scope = self.config.get("secret_scope")
-        # secret_key_name = self.config.get("secret_key_name")
-        # storage_account_key = dbutils.secrets.get(scope=secret_scope, key=secret_key_name)
-        lkh_account_key = self.config.get("lakehouse_storage_account_key")
-        lnd_account_key = self.config.get("landing_storage_account_key")
+        lnd_secret_key_name = self.config.get("landing_secret_key_name")
+        lnd_account_key = dbutils.secrets.get(scope=secret_scope, key=lnd_secret_key_name)
+
         self.spark.conf.set(
             f"fs.azure.account.key.{lkh_account_name}.dfs.core.windows.net", lkh_account_key
         )
