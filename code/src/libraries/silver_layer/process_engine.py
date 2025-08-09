@@ -1,7 +1,12 @@
+import os
+
 from loguru import logger
 
-# from silver_layer.registry import PROCESSOR_REGISTRY
-from registry import PROCESSOR_REGISTRY
+exec_env = os.getenv("EXECUTION_ENV", "local")
+if exec_env == "databricks-connect":
+    from registry import PROCESSOR_REGISTRY
+else:
+    from silver_layer.registry import PROCESSOR_REGISTRY
 
 
 class ProcessorEngine:

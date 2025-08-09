@@ -1,0 +1,24 @@
+{
+    "lakehouse_storage_account_name": "statfmappinovalakehouse",
+    "lakehouse_container_name": "lakehouse",
+    "secret_scope": "akv-tfmappinova",
+    "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
+    "datasource": "internal_system",
+    "dataset": "detalle_facturas",
+    "catalog": "adbtfmappinovalakehouse",
+    "sources": {
+        "main_schema": "bronze",
+        "main_table": "detalle_facturas"
+    },
+    "sink": {
+        "schema": "silver",
+        "table": "detalle_facturas"
+    },
+    "imputations": {
+        "Descuento": 0,
+        "PorcentajeIva": 0,
+        "ISPPorcentaje": 0,
+        "Subtotal": 0
+    },
+    "last_ingest_processed_date": "2025-08-08 11:07:57.876"
+}

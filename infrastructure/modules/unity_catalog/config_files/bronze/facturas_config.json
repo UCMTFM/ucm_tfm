@@ -1,0 +1,29 @@
+{
+    "lakehouse_storage_account_name": "statfmappinovalakehouse",
+    "lakehouse_container_name": "lakehouse",
+    "secret_scope": "akv-tfmappinova",
+    "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
+    "landing_secret_key_name": "landing-stg-account-access-key",
+    "landing_storage_account_name": "statfmappinovalanding",
+    "landing_container_name": "landing",
+    "datasource": "internal_system",
+    "dataset": "facturas",
+    "catalog": "adbtfmappinovalakehouse",
+    "source": {
+        "format" : "cloudFiles",
+        "options" : {          
+            "cloudFiles.format": "csv",
+            "header": "true",
+            "sep": ",",
+            "cloudFiles.inferColumnTypes": "true",
+            "cloudFiles.schemaEvolutionMode": "rescue",
+            "cloudFiles.schemaHints": "IdAuto integer, Fecha timestamp, IdCliente integer, Cantidad integer, Devolucion integer, Rotacion integer, Subtotal double, Descuento double, Iva double, Retefuente double, Total double, APagar double, Anulada boolean, FechaCreacion timestamp, IdResolucion integer, IdEmpresa integer, Saldo double, DescuentoComercial double, Plazo double, EfectivoPagado double, DevolucionEfectivo double, Latitud double, Longitud double, IdClienteAplicacion integer, CREE double, Devoluciones integer, FechaVencimiento date, CantidadDetalle integer, FechaAnulacion timestamp, IdMovimientoCaja double, ParteFecha date, ValorDevoluciones double, Impresa integer, ValorDevolucion double, anio2017 boolean, ReteIva double, CreadaConCodigoBarras boolean, ISPPorcentajeV double, ISPNominalV double"
+        }
+    },
+    "sink": {        
+        "format": "delta",
+        "options": {
+            "mergeSchema": "true"
+        }
+    }
+}

@@ -1,0 +1,28 @@
+{
+    "lakehouse_storage_account_name": "statfmappinovalakehouse",
+    "lakehouse_container_name": "lakehouse",
+    "secret_scope": "akv-tfmappinova",
+    "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
+    "landing_secret_key_name": "landing-stg-account-access-key",
+    "landing_storage_account_name": "statfmappinovalanding",
+    "landing_container_name": "landing",
+    "datasource": "internal_system",
+    "dataset": "clientes",
+    "catalog": "adbtfmappinovalakehouse",
+    "source": {
+        "format" : "cloudFiles",
+        "options" : {          
+            "cloudFiles.format": "csv",
+            "delimiter": ";",
+            "header": "true",
+            "cloudFiles.inferColumnTypes": "true",
+            "cloudFiles.schemaEvolutionMode": "rescue"
+        }
+    },
+    "sink": {        
+        "format": "delta",
+        "options": {
+            "mergeSchema": "true"
+        }
+    }
+}

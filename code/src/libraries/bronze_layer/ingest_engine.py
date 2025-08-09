@@ -1,6 +1,12 @@
-# from ingest_engine.registry import INGESTOR_REGISTRY
+import os
+
 from loguru import logger
-from registry import INGESTOR_REGISTRY
+
+exec_env = os.getenv("EXECUTION_ENV", "local")
+if exec_env == "databricks-connect":
+    from registry import INGESTOR_REGISTRY
+else:
+    from bronze_layer.registry import INGESTOR_REGISTRY
 
 
 class Engine:
