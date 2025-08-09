@@ -10,108 +10,108 @@ locals {
 }
 
 
-# Data LakeHouse Resource Group
+# # Data LakeHouse Resource Group
 
-module "resource_group" {
-  source   = "./modules/resource_group"
-  name     = "lakehouse"
-  prefix   = var.project
-  location = var.location
-  tags     = local.tags
-}
+# module "resource_group" {
+#   source   = "./modules/resource_group"
+#   name     = "lakehouse"
+#   prefix   = var.project
+#   location = var.location
+#   tags     = local.tags
+# }
 
-module "databricks_resource_group" {
-  source   = "./modules/resource_group"
-  name     = "databricks"
-  prefix   = var.project
-  location = var.databricks_location
-  tags     = local.tags
-}
+# module "databricks_resource_group" {
+#   source   = "./modules/resource_group"
+#   name     = "databricks"
+#   prefix   = var.project
+#   location = var.databricks_location
+#   tags     = local.tags
+# }
 
-resource "azuread_group" "admins" {
-  display_name     = "adg${var.project}"
-  security_enabled = true
-}
+# resource "azuread_group" "admins" {
+#   display_name     = "adg${var.project}"
+#   security_enabled = true
+# }
 
-data "azuread_user" "members" {
-  for_each            = toset(var.group_members)
-  user_principal_name = each.key
-}
+# data "azuread_user" "members" {
+#   for_each            = toset(var.group_members)
+#   user_principal_name = each.key
+# }
 
-data "azuread_service_principal" "github_app" {
-  client_id = var.azure_client_id
-}
+# data "azuread_service_principal" "github_app" {
+#   client_id = var.azure_client_id
+# }
 
-resource "azuread_group_member" "members" {
-  for_each         = data.azuread_user.members
-  group_object_id  = azuread_group.admins.object_id
-  member_object_id = each.value.object_id
-}
+# resource "azuread_group_member" "members" {
+#   for_each         = data.azuread_user.members
+#   group_object_id  = azuread_group.admins.object_id
+#   member_object_id = each.value.object_id
+# }
 
-resource "azuread_group_member" "sp_member" {
-  group_object_id  = azuread_group.admins.object_id
-  member_object_id = data.azuread_service_principal.github_app.object_id
-}
+# resource "azuread_group_member" "sp_member" {
+#   group_object_id  = azuread_group.admins.object_id
+#   member_object_id = data.azuread_service_principal.github_app.object_id
+# }
 
-resource "azurerm_role_assignment" "aad_group_rg_contributor" {
-  scope                = module.resource_group.id
-  role_definition_name = "Contributor"
-  principal_id         = azuread_group.admins.object_id
-}
+# resource "azurerm_role_assignment" "aad_group_rg_contributor" {
+#   scope                = module.resource_group.id
+#   role_definition_name = "Contributor"
+#   principal_id         = azuread_group.admins.object_id
+# }
 
-resource "azurerm_role_assignment" "aad_group_rg_databricks_contributor" {
-  scope                = module.databricks_resource_group.id
-  role_definition_name = "Contributor"
-  principal_id         = azuread_group.admins.object_id
-}
+# resource "azurerm_role_assignment" "aad_group_rg_databricks_contributor" {
+#   scope                = module.databricks_resource_group.id
+#   role_definition_name = "Contributor"
+#   principal_id         = azuread_group.admins.object_id
+# }
 
-# Landing Storage
+# # Landing Storage
 
-module "landing_storage" {
-  source              = "./modules/storage_account"
-  name                = "landing"
-  prefix              = var.project
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
-  tags                = local.tags
-}
+# module "landing_storage" {
+#   source              = "./modules/storage_account"
+#   name                = "landing"
+#   prefix              = var.project
+#   resource_group_name = module.resource_group.name
+#   location            = module.resource_group.location
+#   tags                = local.tags
+# }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "landing" {
-  name               = "landing"
-  storage_account_id = module.landing_storage.id
-}
+# resource "azurerm_storage_data_lake_gen2_filesystem" "landing" {
+#   name               = "landing"
+#   storage_account_id = module.landing_storage.id
+# }
 
-resource "azurerm_storage_data_lake_gen2_path" "landing_directories" {
-  for_each           = toset(var.landing_directories)
-  path               = each.value
-  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.landing.name
-  storage_account_id = module.landing_storage.id
-  resource           = "directory"
-}
+# resource "azurerm_storage_data_lake_gen2_path" "landing_directories" {
+#   for_each           = toset(var.landing_directories)
+#   path               = each.value
+#   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.landing.name
+#   storage_account_id = module.landing_storage.id
+#   resource           = "directory"
+# }
 
-# LakeHouse Storage
+# # LakeHouse Storage
 
-module "lakehouse_storage" {
-  source              = "./modules/storage_account"
-  name                = "lakehouse"
-  prefix              = var.project
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
-  tags                = local.tags
-}
+# module "lakehouse_storage" {
+#   source              = "./modules/storage_account"
+#   name                = "lakehouse"
+#   prefix              = var.project
+#   resource_group_name = module.resource_group.name
+#   location            = module.resource_group.location
+#   tags                = local.tags
+# }
 
-resource "azurerm_storage_data_lake_gen2_filesystem" "lakehouse" {
-  name               = "lakehouse"
-  storage_account_id = module.lakehouse_storage.id
-}
+# resource "azurerm_storage_data_lake_gen2_filesystem" "lakehouse" {
+#   name               = "lakehouse"
+#   storage_account_id = module.lakehouse_storage.id
+# }
 
-resource "azurerm_storage_data_lake_gen2_path" "lakehouse_directories" {
-  for_each           = toset(var.lakehouse_directories)
-  path               = each.value
-  filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
-  storage_account_id = module.lakehouse_storage.id
-  resource           = "directory"
-}
+# resource "azurerm_storage_data_lake_gen2_path" "lakehouse_directories" {
+#   for_each           = toset(var.lakehouse_directories)
+#   path               = each.value
+#   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.lakehouse.name
+#   storage_account_id = module.lakehouse_storage.id
+#   resource           = "directory"
+# }
 
 # Databricks Workspace
 
@@ -152,10 +152,10 @@ resource "azurerm_storage_data_lake_gen2_path" "lakehouse_directories" {
 
 # Unity Catalog
 
-provider "databricks" {
-  alias                       = "databricks_uc"
-  azure_workspace_resource_id = module.databricks_workspace.id
-}
+# provider "databricks" {
+#   alias                       = "databricks_uc"
+#   azure_workspace_resource_id = module.databricks_workspace.id
+# }
 
 # module "unity_catalog" {
 #   providers = {
