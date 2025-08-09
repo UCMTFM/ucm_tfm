@@ -1,13 +1,13 @@
-locals {
-  tags = merge(
-    var.tags,
-    {
-      project = var.project
-    }
-  )
-  # workspace_ready = can(module.databricks_workspace.id)
-  admin_member_ids = [for _, u in data.azuread_user.members : u.object_id]
-}
+# locals {
+#   tags = merge(
+#     var.tags,
+#     {
+#       project = var.project
+#     }
+#   )
+#   # workspace_ready = can(module.databricks_workspace.id)
+#   admin_member_ids = [for _, u in data.azuread_user.members : u.object_id]
+# }
 
 
 # # Data LakeHouse Resource Group
