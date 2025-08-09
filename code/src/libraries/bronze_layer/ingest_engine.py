@@ -50,7 +50,7 @@ class Engine:
 
 if __name__ == "__main__":
     dataset = "facturas"
-    config_path = f"./config_files/bronze/{dataset}_config.json"
     workload = "batch"
-    engine = Engine(workload, config_path)
+    config_dbfs_path = f"dbfs:/FileStore/config/bronze/{dataset}_config.json"
+    engine = Engine(workload, config_dbfs_path)
     engine.ingest()

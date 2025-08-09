@@ -46,11 +46,10 @@ class BaseProcessor(ABC):
         """
         self.spark = SparkSession.builder.getOrCreate()
         self.config_path = config_path
+        self.dbutils = DBUtils(self.spark)
 
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        self.config = config
+        cfg_str = self.dbutils.fs.head(config_path, 10_000_000)
+        self.config = json.loads(cfg_str)
         self.connect_to_storage_account()
 
     @abstractmethod
@@ -62,7 +61,7 @@ class BaseProcessor(ABC):
         pass
 
     def imputations(self, df: DF) -> DF:
-        logger.info("Starting imputations on detalle_notas_credito data")
+        logger.info("Starting imputations on data")
         imputation_config = self.config.get("imputations", {})
         for column, value in imputation_config.items():
             df = df.withColumn(
@@ -76,11 +75,10 @@ class BaseProcessor(ABC):
         Configure Spark to access Azure Data Lake Storage using secrets
         stored in Databricks secret scope.
         """
-        dbutils = DBUtils(self.spark)
         storage_account_name = self.config.get("lakehouse_storage_account_name")
         secret_scope = self.config.get("secret_scope")
         secret_key_name = self.config.get("lakehouse_secret_key_name")
-        storage_account_key = dbutils.secrets.get(scope=secret_scope, key=secret_key_name)
+        storage_account_key = self.dbutils.secrets.get(scope=secret_scope, key=secret_key_name)
         self.spark.conf.set(
             f"fs.azure.account.key.{storage_account_name}.dfs.core.windows.net", storage_account_key
         )
@@ -207,5 +205,4 @@ class BaseProcessor(ABC):
         if not df.isEmpty():
             max_timestamp_processed = df.select(F.max("_ingestion_time").cast("string")).first()[0]
             self.config["last_ingest_processed_date"] = max_timestamp_processed
-            with open(self.config_path, "w") as f:
-                json.dump(self.config, f, indent=4)
+            self.dbutils.fs.put(self.config_path, json.dumps(self.config, indent=4), overwrite=True)
