@@ -157,90 +157,90 @@ provider "databricks" {
   azure_workspace_resource_id = module.databricks_workspace.id
 }
 
-module "unity_catalog" {
-  providers = {
-    databricks = databricks.databricks_uc
-  }
+# module "unity_catalog" {
+#   providers = {
+#     databricks = databricks.databricks_uc
+#   }
 
-  count                          = local.workspace_ready ? 1 : 0
-  depends_on                     = [ module.databricks_workspace ]
-  source                         = "./modules/unity_catalog"
-  databricks_workspace_id        = module.databricks_workspace.id
-  prefix                         = var.project
-  access_connector_id            = module.databricks_access_connector.id
-  lakehouse_external_layers      = ["bronze", "silver", "gold"]
-  lakehouse_storage_account_name = module.lakehouse_storage.account_name
-  container_name                 = "lakehouse"
-  admin_group_name               = azuread_group.admins.display_name
-  key_vault_id                   = module.key_vault.key_vault_id
-  key_vault_uri                  = module.key_vault.key_vault_uri
-}
+#   count                          = local.workspace_ready ? 1 : 0
+#   depends_on                     = [ module.databricks_workspace ]
+#   source                         = "./modules/unity_catalog"
+#   databricks_workspace_id        = module.databricks_workspace.id
+#   prefix                         = var.project
+#   access_connector_id            = module.databricks_access_connector.id
+#   lakehouse_external_layers      = ["bronze", "silver", "gold"]
+#   lakehouse_storage_account_name = module.lakehouse_storage.account_name
+#   container_name                 = "lakehouse"
+#   admin_group_name               = azuread_group.admins.display_name
+#   key_vault_id                   = module.key_vault.key_vault_id
+#   key_vault_uri                  = module.key_vault.key_vault_uri
+# }
 
-# Databricks Clusters 
+# # Databricks Clusters 
 
-module "single_node_compute" {
-  providers = {
-    databricks = databricks.databricks_uc
-  }
+# module "single_node_compute" {
+#   providers = {
+#     databricks = databricks.databricks_uc
+#   }
 
-  depends_on              = [ module.databricks_workspace ]
-  source                  = "./modules/databricks_clusters"
-  prefix                  = var.project
-  spark_version           = "15.4.x-scala2.12"
-  node_type_id            = "Standard_F4s_v2"
-  idle_minutes            = 15
-  num_workers             = 0
-  databricks_workspace_id = module.databricks_workspace.id
-  databricks_cluster_user = var.databricks_cluster_user
-}
+#   depends_on              = [ module.databricks_workspace ]
+#   source                  = "./modules/databricks_clusters"
+#   prefix                  = var.project
+#   spark_version           = "15.4.x-scala2.12"
+#   node_type_id            = "Standard_F4s_v2"
+#   idle_minutes            = 15
+#   num_workers             = 0
+#   databricks_workspace_id = module.databricks_workspace.id
+#   databricks_cluster_user = var.databricks_cluster_user
+# }
 
-# Azure k8s Cluster
+# # Azure k8s Cluster
 
-module "aks" {
-  source = "./modules/aks"
-  name   = "lakehousecluster"
-  prefix = var.project
+# module "aks" {
+#   source = "./modules/aks"
+#   name   = "lakehousecluster"
+#   prefix = var.project
 
-  location            = module.resource_group.location
-  resource_group_name = module.resource_group.name
-  agents_count        = 2
-  agents_min_count    = 2
+#   location            = module.resource_group.location
+#   resource_group_name = module.resource_group.name
+#   agents_count        = 2
+#   agents_min_count    = 2
 
-  tags = local.tags
-}
+#   tags = local.tags
+# }
 
-provider "helm" {
-  kubernetes = {
-    host                   = module.aks.host
-    client_certificate     = base64decode(module.aks.client_certificate)
-    client_key             = base64decode(module.aks.client_key)
-    cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
-  }
-}
+# provider "helm" {
+#   kubernetes = {
+#     host                   = module.aks.host
+#     client_certificate     = base64decode(module.aks.client_certificate)
+#     client_key             = base64decode(module.aks.client_key)
+#     cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
+#   }
+# }
 
-resource "helm_release" "airflow" {
-  depends_on       = [module.aks]
-  name             = "airflow-server"
-  create_namespace = true
-  namespace        = "airflow"
-  repository       = "https://airflow.apache.org"
-  chart            = "airflow"
-  version          = "1.17.0"
-  wait             = false
-  timeout          = 300
+# resource "helm_release" "airflow" {
+#   depends_on       = [module.aks]
+#   name             = "airflow-server"
+#   create_namespace = true
+#   namespace        = "airflow"
+#   repository       = "https://airflow.apache.org"
+#   chart            = "airflow"
+#   version          = "1.17.0"
+#   wait             = false
+#   timeout          = 300
 
-  values = [file("${path.root}/helm_charts/airflow.yaml")]
-}
+#   values = [file("${path.root}/helm_charts/airflow.yaml")]
+# }
 
-resource "helm_release" "mlflow" {
-  name             = "mlflow-server"
-  create_namespace = true
-  namespace        = "mlflow"
-  repository       = "https://community-charts.github.io/helm-charts"
-  chart            = "mlflow"
-  version          = "1.3.2"
-  wait             = false
-  timeout          = 300
+# resource "helm_release" "mlflow" {
+#   name             = "mlflow-server"
+#   create_namespace = true
+#   namespace        = "mlflow"
+#   repository       = "https://community-charts.github.io/helm-charts"
+#   chart            = "mlflow"
+#   version          = "1.3.2"
+#   wait             = false
+#   timeout          = 300
 
-  values = [file("${path.root}/helm_charts/mlflow.yaml")]
-}
+#   values = [file("${path.root}/helm_charts/mlflow.yaml")]
+# }
