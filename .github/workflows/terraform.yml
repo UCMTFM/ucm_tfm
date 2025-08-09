@@ -46,18 +46,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install build
 
-      - name: Build wheel into infrastructure/dist
+      - name: Build wheel into infrastructure/libraries
         if: steps.changes.outputs.code == 'true'
         run: |
-          mkdir -p infrastructure/dist
-          python -m build --outdir infrastructure/dist .
+          mkdir -p infrastructure/libraries
+          python -m build --outdir infrastructure/libraries .
 
       - name: Upload wheel artifact
         if: steps.changes.outputs.code == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-wheel
-          path: infrastructure/dist/*.whl
+          path: infrastructure/libraries/*.whl
           if-no-files-found: ignore
       
   deploy_databricks_workspace:
