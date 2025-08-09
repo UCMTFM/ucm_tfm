@@ -58,6 +58,6 @@ resource "databricks_secret_scope" "keyvault_scope" {
 
 resource "databricks_dbfs_file" "upload_to_filestore" {
   for_each  = { for f in local.files : f => f }
-  path      = "dbfs:/FileStore/config/${each.key}"
+  path      = "/FileStore/config/${each.key}"
   source    = "${local.src_root}/${each.value}"
 }
