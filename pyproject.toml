@@ -8,4 +8,22 @@ dependencies = [
     "apache-airflow>=3.0.3",
     "apache-airflow-providers-databricks",
     "pyarrow==20.0.0",
+    "loguru==0.7.1",
+    "pyspark==3.5.0",
+    "pandas==2.2.1",
+    "confluent-kafka==2.10.0",
+    "httpx==0.28.1",
+    "attrs==25.3.0",
+    "Authlib==1.5.2"
 ]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "code/src/libraries"}
+
+[tool.setuptools.packages.find]
+where = ["code/src/libraries"]
+include = ["ingest_engine*", "silver_layer*"]

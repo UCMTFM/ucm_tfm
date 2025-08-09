@@ -5,13 +5,10 @@ from abc import ABC, abstractmethod
 
 from delta.tables import DeltaTable
 from loguru import logger
-
-# from pyspark.dbutils import DBUtils
+from pyspark.dbutils import DBUtils
 from pyspark.sql import DataFrame as DF
 from pyspark.sql import functions as F
 from pyspark.sql.column import Column
-
-# from pyspark.sql.window import Window
 
 exec_env = os.getenv("EXECUTION_ENV", "databricks-connect")
 if exec_env == "databricks-connect":
@@ -79,12 +76,11 @@ class BaseProcessor(ABC):
         Configure Spark to access Azure Data Lake Storage using secrets
         stored in Databricks secret scope.
         """
-        # dbutils = DBUtils(self.spark)
+        dbutils = DBUtils(self.spark)
         storage_account_name = self.config.get("lakehouse_storage_account_name")
-        # secret_scope = self.config.get("secret_scope")
-        # secret_key_name = self.config.get("secret_key_name")
-        # storage_account_key = dbutils.secrets.get(scope=secret_scope, key=secret_key_name)
-        storage_account_key = self.config.get("lakehouse_storage_account_key")
+        secret_scope = self.config.get("secret_scope")
+        secret_key_name = self.config.get("lakehouse_secret_key_name")
+        storage_account_key = dbutils.secrets.get(scope=secret_scope, key=secret_key_name)
         self.spark.conf.set(
             f"fs.azure.account.key.{storage_account_name}.dfs.core.windows.net", storage_account_key
         )
