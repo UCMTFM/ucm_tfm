@@ -20,9 +20,7 @@ jobs:
   build_wheel:
     name: "Build Python Wheel"
     runs-on: ubuntu-latest
-    if: |
-      github.ref == 'refs/heads/main' &&
-      github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,16 +46,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install build
 
-      - name: Build wheel
+      - name: Build wheel into infrastructure/dist
         if: steps.changes.outputs.code == 'true'
-        run: python -m build
+        run: |
+          mkdir -p infrastructure/dist
+          python -m build --outdir infrastructure/dist .
 
       - name: Upload wheel artifact
         if: steps.changes.outputs.code == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-wheel
-          path: dist/*.whl
+          path: infrastructure/dist/*.whl
           if-no-files-found: ignore
       
   deploy_databricks_workspace:
