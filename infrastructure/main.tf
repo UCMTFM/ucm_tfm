@@ -5,7 +5,7 @@ locals {
       project = var.project
     }
   )
-  workspace_ready = can(module.databricks_workspace.id)
+  # workspace_ready = can(module.databricks_workspace.id)
   admin_member_ids = [for _, u in data.azuread_user.members : u.object_id]
 }
 
