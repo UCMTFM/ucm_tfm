@@ -56,6 +56,12 @@ resource "databricks_secret_scope" "keyvault_scope" {
   }
 }
 
+resource "databricks_workspace_conf" "dbfs_browser" {
+  custom_config = {
+    "enableDbfsFileBrowser" = "true"
+  }
+}
+
 resource "databricks_dbfs_file" "upload_to_filestore" {
   for_each  = { for f in local.files : f => f }
   path      = "/FileStore/config/${each.key}"
