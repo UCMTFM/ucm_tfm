@@ -2,38 +2,38 @@ terraform {
   required_providers {
     databricks = {
       source  = "databricks/databricks"
-      version = "1.30.0"
+      version = "1.86.0"
     }
   }
 }
 
 locals {
   src_root = "${path.module}/config_files"
-  files    = fileset(local.src_root, "**") 
+  files    = fileset(local.src_root, "**")
 }
 
 resource "databricks_storage_credential" "access_connector_credential" {
-    provider = databricks
-    name     = "dac-${var.prefix}"
+  provider = databricks
+  name     = "dac-${var.prefix}"
 
-    azure_managed_identity {
-      access_connector_id = var.access_connector_id
-    }
+  azure_managed_identity {
+    access_connector_id = var.access_connector_id
+  }
 
-    comment = "Credential linked to Access Connector"
+  comment = "Credential linked to Access Connector"
 }
 
 resource "databricks_external_location" "lakehouse_layers" {
-    provider        = databricks
-    for_each        = toset(var.lakehouse_external_layers)
-    name            = "external_location_${each.key}"
-    url             = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/${each.key}"
-    credential_name = databricks_storage_credential.access_connector_credential.name
-    comment         = "External location for the ${each.key} layer of the Lakehouse"
+  provider        = databricks
+  for_each        = toset(var.lakehouse_external_layers)
+  name            = "external_location_${each.key}"
+  url             = "abfss://${var.container_name}@${var.lakehouse_storage_account_name}.dfs.core.windows.net/${each.key}"
+  credential_name = databricks_storage_credential.access_connector_credential.name
+  comment         = "External location for the ${each.key} layer of the Lakehouse"
 
-    depends_on = [
-        databricks_storage_credential.access_connector_credential
-    ]
+  depends_on = [
+    databricks_storage_credential.access_connector_credential
+  ]
 }
 
 resource "databricks_grants" "lakehouse_layers_grants" {
@@ -43,7 +43,7 @@ resource "databricks_grants" "lakehouse_layers_grants" {
 
   grant {
     principal  = "account users"
-    privileges = ["READ_FILES", "WRITE_FILES", "CREATE_EXTERNAL_TABLE", "CREATE_MANAGED_STORAGE" ]
+    privileges = ["READ_FILES", "WRITE_FILES", "CREATE_EXTERNAL_TABLE", "CREATE_MANAGED_STORAGE"]
   }
 }
 
@@ -63,7 +63,7 @@ resource "databricks_workspace_conf" "dbfs_browser" {
 }
 
 resource "databricks_dbfs_file" "upload_to_filestore" {
-  for_each  = { for f in local.files : f => f }
-  path      = "/FileStore/config/${each.key}"
-  source    = "${local.src_root}/${each.value}"
+  for_each = { for f in local.files : f => f }
+  path     = "/FileStore/config/${each.key}"
+  source   = "${local.src_root}/${each.value}"
 }

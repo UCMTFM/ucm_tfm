@@ -14,7 +14,7 @@ terraform {
     }
     databricks = {
       source  = "databricks/databricks"
-      version = "1.30.0"
+      version = "1.86.0"
     }
   }
   backend "azurerm" {
