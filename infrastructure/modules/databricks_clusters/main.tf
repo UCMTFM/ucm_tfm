@@ -24,6 +24,10 @@ resource "databricks_cluster" "shared_autoscaling" {
     min_workers = var.min_workers
     max_workers = var.max_workers
   }
+
+  spark_conf = {
+    "spark.sql.catalog.spark_catalog" = "org.apache.spark.sql.execution.datasources.v2.unity.UnityCatalogSparkSessionExtension"
+  }
 }
 
 # resource "databricks_cluster" "single_node" {
