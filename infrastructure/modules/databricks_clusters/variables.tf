@@ -6,11 +6,15 @@ variable "prefix" {
 variable "spark_version" {
   type        = string
   description = "Spark version for the Databricks cluster."
+  default     = null
+  nullable    = true
 }
 
 variable "node_type_id" {
   type        = string
   description = "Node type ID for the Databricks cluster"
+  default     = null
+  nullable    = true
 }
 
 variable "idle_minutes" {
@@ -18,9 +22,16 @@ variable "idle_minutes" {
   description = "Number of idle minutes before the cluster is terminated"
 }
 
-variable "num_workers" {
+variable "min_workers" {
   type        = number
-  description = "Number of workers for the Databricks cluster"
+  default     = 1
+  description = "Minimum number of workers for the Databricks cluster"
+}
+
+variable "max_workers" {
+  type        = number
+  default     = 1
+  description = "Maximum number of workers for the Databricks cluster"
 }
 
 variable "databricks_workspace_id" {
@@ -30,5 +41,5 @@ variable "databricks_workspace_id" {
 
 variable "databricks_cluster_user" {
   type        = string
-  description = "User name for the single user of the Databricks cluster"  
+  description = "User name for the single user of the Databricks cluster"
 }
