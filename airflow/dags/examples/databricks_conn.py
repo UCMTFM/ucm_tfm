@@ -17,6 +17,6 @@ with DAG(
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
         sql="SHOW TABLES",
         catalog="adbtfmappinnovalakehouse",
-        schema="default",
+        schema="adbtfmappinnovalakehouse.information_schema",
         http_path=DatabricksClusters.SERVERLESS_SQL_WH,
     )
