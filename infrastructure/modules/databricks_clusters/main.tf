@@ -16,7 +16,7 @@ data "databricks_spark_version" "latest_lts" {
 }
 
 resource "databricks_cluster" "shared_autoscaling" {
-  cluster_name            = "Shared Autoscaling"
+  cluster_name            = "${var.prefix}_shared_autoscaling_cluster"
   spark_version           = var.spark_version != null ? var.spark_version : data.databricks_spark_version.latest_lts.id
   node_type_id            = var.node_type_id != null ? var.node_type_id : data.databricks_node_type.smallest.id
   autotermination_minutes = var.idle_minutes
