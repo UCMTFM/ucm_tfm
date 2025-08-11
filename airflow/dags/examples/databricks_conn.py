@@ -13,10 +13,19 @@ with DAG(
     tags=["databricks", "sql"],
 ) as dag:
     create_table = DatabricksSqlOperator(
-        task_id="show_tables",
+        task_id="show_tables_serverless",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
         sql="SHOW TABLES",
         catalog="adbtfmappinnovalakehouse",
         schema="default",
         http_path=DatabricksClusters.SERVERLESS_SQL_WH,
+    )
+
+    create_table = DatabricksSqlOperator(
+        task_id="show_tables_shared_cluster",
+        databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
+        sql="SHOW TABLES",
+        catalog="adbtfmappinnovalakehouse",
+        schema="default",
+        http_path=DatabricksClusters.SHARED_CLUSTER,
     )
