@@ -1,0 +1,32 @@
+[project]
+name = "ucm-tfm-lakehouse"
+version = "1.0.0"
+description = "UCM TFM Lakehouse Project"
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+  "apache-airflow>=3.0.3",
+  "apache-airflow-providers-databricks",
+  "pyarrow==20.0.0",
+  "loguru==0.7.1",
+  "pyspark==3.5.0",
+  "pandas==2.2.1",
+  "confluent-kafka==2.10.0",
+  "httpx==0.28.1",
+  "attrs==25.3.0",
+  "Authlib==1.5.2",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv]
+package = false
+
+[tool.setuptools]
+package-dir = { "" = "src/libraries" }
+
+[tool.setuptools.packages.find]
+where = ["src/libraries"]
+include = ["bronze_layer*", "silver_layer*"]
