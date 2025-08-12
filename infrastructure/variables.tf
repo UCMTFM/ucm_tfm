@@ -21,22 +21,10 @@ variable "group_members" {
 }
 
 variable "azure_client_id" {
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
   description = "Azure Client ID for the service principal"
 }
-
-# variable "azure_client_secret" {
-#   type = string
-#   sensitive = true
-#   description = "Azure Client Secret for the service principal"
-# }
-
-# variable "azure_tenant_id" {
-#   type = string
-#   sensitive = true
-#   description = "Azure Tenant ID for the service principal"
-# }
 
 variable "lakehouse_directories" {
   description = "List of directories to be created in the lakhouse Storage Account"
@@ -50,10 +38,15 @@ variable "landing_directories" {
 
 variable "databricks_cluster_user" {
   type        = string
-  description = "User name for the single user of the Databricks cluster"  
+  description = "User name for the single user of the Databricks cluster"
 }
 
 variable "databricks_location" {
   type        = string
   description = "Location for the Databricks workspace"
+}
+
+variable "git_repo_https_url" {
+  type        = string
+  description = "Git repository URL for the project"
 }
