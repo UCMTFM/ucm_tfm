@@ -33,7 +33,7 @@ resource "databricks_cluster" "shared_autoscaling" {
 resource "databricks_repo" "databricks_notebooks" {
   url    = var.git_repo_https_url
   branch = "main"
-  path   = "/Repos/databricks_notebooks"
+  path   = "/Repos/ucm_tfm/databricks_notebooks"
 
   sparse_checkout {
     patterns = ["databricks_notebooks/"]
