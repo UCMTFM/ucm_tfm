@@ -35,7 +35,7 @@ resource "databricks_repo" "databricks_notebooks" {
   branch = "main"
 
   sparse_checkout {
-    patterns = ["databricks_notebooks/*"]
+    patterns = ["databricks_notebooks/"]
   }
 }
 
