@@ -191,6 +191,15 @@ module "single_node_compute" {
   databricks_cluster_user = var.databricks_cluster_user
 }
 
+resource "databricks_repo" "databricks_notebooks" {
+  url    = var.git_repo_https_url
+  branch = "main"
+
+  sparse_checkout {
+    patterns = ["databricks_notebooks/*"]
+  }
+}
+
 # Azure k8s Cluster
 
 module "aks" {
