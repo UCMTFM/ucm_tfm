@@ -31,8 +31,7 @@ jobs:
         with:
           filters: |
             code:
-              - 'code/src/libraries/**'
-              - 'pyproject.toml'
+              - 'code/**'
 
       - name: Set up Python
         if: steps.changes.outputs.code == 'true'
@@ -49,6 +48,7 @@ jobs:
       - name: Build wheel into infrastructure/libraries
         if: steps.changes.outputs.code == 'true'
         run: |
+          cd code
           mkdir -p infrastructure/libraries
           python -m build --outdir infrastructure/libraries .
 
@@ -170,4 +170,3 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           TF_VAR_group_members: ${{ vars.TF_VAR_GROUP_MEMBERS }}
           TF_VAR_azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-
