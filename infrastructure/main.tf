@@ -189,15 +189,7 @@ module "single_node_compute" {
   idle_minutes            = 15
   databricks_workspace_id = module.databricks_workspace.id
   databricks_cluster_user = var.databricks_cluster_user
-}
-
-resource "databricks_repo" "databricks_notebooks" {
-  url    = var.git_repo_https_url
-  branch = "main"
-
-  sparse_checkout {
-    patterns = ["databricks_notebooks/*"]
-  }
+  git_repo_https_url      = var.git_repo_https_url
 }
 
 # Azure k8s Cluster
