@@ -34,6 +34,11 @@ variable "max_workers" {
   description = "Maximum number of workers for the Databricks cluster"
 }
 
+variable "git_repo_https_url" {
+  type        = string
+  description = "Git repository URL for the project"
+}
+
 variable "databricks_workspace_id" {
   type        = string
   description = "Resource ID of the Databricks workspace"
