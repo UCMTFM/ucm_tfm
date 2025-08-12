@@ -194,7 +194,10 @@ module "single_node_compute" {
 resource "databricks_repo" "databricks_notebooks" {
   url    = var.git_repo_https_url
   branch = "main"
-  path   = "databricks_notebooks"
+
+  sparse_checkout {
+    patterns = ["databricks_notebooks/*"]
+  }
 }
 
 # Azure k8s Cluster
