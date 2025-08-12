@@ -9,12 +9,12 @@ dependencies = [
   "apache-airflow-providers-databricks",
   "pyarrow==20.0.0",
   "loguru==0.7.1",
-  "pyspark==3.5.0",
   "pandas==2.2.1",
   "confluent-kafka==2.10.0",
   "httpx==0.28.1",
   "attrs==25.3.0",
   "Authlib==1.5.2",
+  "pytest==8.3.4",
 ]
 
 [build-system]
@@ -30,3 +30,10 @@ package-dir = { "" = "src/libraries" }
 [tool.setuptools.packages.find]
 where = ["src/libraries"]
 include = ["bronze_layer*", "silver_layer*"]
+
+[dependency-groups]
+dev = [
+    "databricks-connect==15.4.4",
+    "grpcio>=1.74.0",
+    "grpcio-status==1.59.3",
+]
