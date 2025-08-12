@@ -20,6 +20,8 @@ resource "databricks_cluster" "shared_autoscaling" {
   spark_version           = var.spark_version != null ? var.spark_version : data.databricks_spark_version.latest_lts.id
   node_type_id            = var.node_type_id != null ? var.node_type_id : data.databricks_node_type.smallest.id
   autotermination_minutes = var.idle_minutes
+  data_security_mode      = "USER_ISOLATION"
+
   autoscale {
     min_workers = var.min_workers
     max_workers = var.max_workers
