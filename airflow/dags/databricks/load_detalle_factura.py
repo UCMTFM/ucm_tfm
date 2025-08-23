@@ -45,3 +45,5 @@ with DAG(
             },
         },
     )
+
+    load_facturas_into_bronze >> load_facturas_into_silver
