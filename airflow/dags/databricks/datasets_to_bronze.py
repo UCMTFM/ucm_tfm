@@ -1,4 +1,5 @@
 from airflow.models.baseoperator import chain
+from airflow.providers.standard.operators.empty import EmptyOperator
 import pendulum
 
 from airflow.models.dag import DAG
@@ -29,6 +30,9 @@ with DAG(
     schedule=None,
     tags=["databricks", "bronze"],
 ) as dag:
+    start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
+
     load_detalle_facturas = load_dataset_into_bronze("detalle_facturas")
     load_facturas = load_dataset_into_bronze("facturas")
 
@@ -37,10 +41,12 @@ with DAG(
     # load_municipio = load_dataset_into_bronze("municipio")
 
     chain(
+        start,
         [
             load_detalle_facturas >> load_facturas,
             # load_clientes,
             # load_departamento,
             # load_municipio,
-        ]
+        ],
+        end,
     )
