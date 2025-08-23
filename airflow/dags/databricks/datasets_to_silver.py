@@ -1,3 +1,4 @@
+from airflow.decorators import task_group
 from airflow.models.baseoperator import chain
 import pendulum
 
@@ -24,15 +25,8 @@ def load_dataset_into_silver(dataset: SilverDatasets):
     )
 
 
-with DAG(
-    dag_id="ingest_datasets_into_silver",
-    start_date=pendulum.now(tz="UTC"),
-    schedule=None,
-    tags=["databricks", "silver"],
-) as dag:
-    start = EmptyOperator(task_id="start")
-    end = EmptyOperator(task_id="end")
-
+@task_group(group_id="load_datasets_into_silver")
+def load_datasets_into_silver():
     load_detalle_facturas = load_dataset_into_silver(SilverDatasets.DETALLE_FACTURAS)
     load_facturas = load_dataset_into_silver(SilverDatasets.FACTURAS)
 
@@ -42,10 +36,24 @@ with DAG(
     load_notas_credito = load_dataset_into_silver(SilverDatasets.NOTAS_CREDITO)
 
     chain(
-        start,
         [
             load_detalle_facturas >> load_facturas,
             load_notas_credito >> load_detalle_notas_credito,
-        ],
+        ]
+    )
+
+
+with DAG(
+    dag_id="ingest_datasets_into_silver",
+    start_date=pendulum.now(tz="UTC"),
+    schedule=None,
+    tags=["databricks", "silver"],
+) as dag:
+    start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
+
+    chain(
+        start,
+        load_datasets_into_silver(),
         end,
     )

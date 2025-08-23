@@ -2,6 +2,7 @@ from airflow.models.baseoperator import chain
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 import pendulum
+from airflow.decorators import task_group
 
 from airflow.models.dag import DAG
 from airflow.providers.databricks.operators.databricks import (
@@ -25,6 +26,25 @@ def load_dataset_into_bronze(dataset: BronzeDatasets):
     )
 
 
+@task_group(group_id="load_datasets_into_bronze")
+def load_datasets_into_bronze():
+    load_detalle_facturas = load_dataset_into_bronze(BronzeDatasets.DETALLE_FACTURAS)
+    load_facturas = load_dataset_into_bronze(BronzeDatasets.FACTURAS)
+
+    # load_clientes = load_dataset_into_bronze(BronzeDatasets.CLIENTES)
+    # load_departamento = load_dataset_into_bronze(BronzeDatasets.DEPARTAMENTOS)
+    # load_municipio = load_dataset_into_bronze(BronzeDatasets.MUNICIPIOS)
+
+    chain(
+        [
+            load_detalle_facturas >> load_facturas,
+            # load_clientes,
+            # load_departamento,
+            # load_municipio,
+        ]
+    )
+
+
 with DAG(
     dag_id="ingest_datasets_into_bronze",
     start_date=pendulum.now(tz="UTC"),
@@ -34,27 +54,15 @@ with DAG(
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
 
-    load_detalle_facturas = load_dataset_into_bronze(BronzeDatasets.DETALLE_FACTURAS)
-    load_facturas = load_dataset_into_bronze(BronzeDatasets.FACTURAS)
-
-    # load_clientes = load_dataset_into_bronze(BronzeDatasets.CLIENTES)
-    # load_departamento = load_dataset_into_bronze(BronzeDatasets.DEPARTAMENTOS)
-    # load_municipio = load_dataset_into_bronze(BronzeDatasets.MUNICIPIOS)
-
     trigger_silver_dag = TriggerDagRunOperator(
         task_id="trigger_datasets_to_silver_dag",
-        trigger_dag_id="datasets_to_silver",
+        trigger_dag_id="ingest_datasets_to_silver",
         wait_for_completion=False,
     )
 
     chain(
         start,
-        [
-            load_detalle_facturas >> load_facturas,
-            # load_clientes,
-            # load_departamento,
-            # load_municipio,
-        ],
+        load_datasets_into_bronze(),
         end,
         trigger_silver_dag,
     )
