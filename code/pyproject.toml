@@ -6,10 +6,10 @@ requires-python = ">=3.11"
 readme = "README.md"
 dependencies = [
   "apache-airflow>=3.0.3",
-  "apache-airflow-providers-databricks",
+  "apache-airflow-providers-databricks==7.7.0",
   "pyarrow==20.0.0",
   "loguru==0.7.1",
-  "pandas==2.2.1",
+  "pandas>=2.1.2",
   "confluent-kafka==2.10.0",
   "httpx==0.28.1",
   "attrs==25.3.0",
