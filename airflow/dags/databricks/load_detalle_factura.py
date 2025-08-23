@@ -23,9 +23,8 @@ with DAG(
     task_run = DatabricksTaskOperator(
         task_id="test1",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
+        existing_cluster_id="0811-190647-smbozjci",
         task_config={
-            "task_key": "Test Task",
-            "existing_cluster_id": "0811-190647-smbozjci",
             "notebook_task": {
                 "notebook_path": "/Repos/ucm_tfm/databricks_notebooks/databricks_notebooks/Bronze",
                 "source": "WORKSPACE",
