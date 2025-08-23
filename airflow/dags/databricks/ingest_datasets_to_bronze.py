@@ -39,19 +39,24 @@ def load_dataset_into_silver(dataset: str):
     )
 
 
-@task_group(group_id="ingest-facturas")
-def ingest_facturas():
-    load_detalles_factura = load_dataset_into_bronze("detalles_factura")
-    load_facturas_into_bronze = load_dataset_into_bronze("facturas")
-    load_facturas_into_silver = load_dataset_into_silver("facturas")
-
-    load_detalles_factura >> load_facturas_into_bronze >> load_facturas_into_silver
-
-
 with DAG(
     dag_id="ingest_datasets",
     start_date=pendulum.now(tz="UTC"),
     schedule=None,
     tags=["databricks", "factura", "clientes"],
 ) as dag:
-    chain(ingest_facturas())
+    load_detalle_facturas = load_dataset_into_bronze("detalle_facturas")
+    load_facturas = load_dataset_into_bronze("facturas")
+
+    load_clientes = load_dataset_into_bronze("clientes")
+    load_departamento = load_dataset_into_bronze("departamento")
+    load_municipio = load_dataset_into_bronze("municipio")
+
+    chain(
+        [
+            load_detalle_facturas >> load_facturas,
+            load_clientes,
+            load_departamento,
+            load_municipio,
+        ]
+    )
