@@ -7,10 +7,10 @@ from airflow.models.dag import DAG
 from airflow.providers.databricks.operators.databricks import (
     DatabricksTaskOperator,
 )
-from commons.enums import AirflowConnections, DatabricksClusters
+from commons.enums import AirflowConnections, BronzeDatasets, DatabricksClusters
 
 
-def load_dataset_into_bronze(dataset: str):
+def load_dataset_into_bronze(dataset: BronzeDatasets):
     return DatabricksTaskOperator(
         task_id=f"load-{dataset}-into-bronze",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
@@ -34,12 +34,12 @@ with DAG(
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
 
-    load_detalle_facturas = load_dataset_into_bronze("detalle_facturas")
-    load_facturas = load_dataset_into_bronze("facturas")
+    load_detalle_facturas = load_dataset_into_bronze(BronzeDatasets.DETALLE_FACTURAS)
+    load_facturas = load_dataset_into_bronze(BronzeDatasets.FACTURAS)
 
-    # load_clientes = load_dataset_into_bronze("clientes")
-    # load_departamento = load_dataset_into_bronze("departamento")
-    # load_municipio = load_dataset_into_bronze("municipio")
+    # load_clientes = load_dataset_into_bronze(BronzeDatasets.CLIENTES)
+    # load_departamento = load_dataset_into_bronze(BronzeDatasets.DEPARTAMENTOS)
+    # load_municipio = load_dataset_into_bronze(BronzeDatasets.MUNICIPIOS)
 
     trigger_silver_dag = TriggerDagRunOperator(
         task_id="trigger_datasets_to_silver_dag",

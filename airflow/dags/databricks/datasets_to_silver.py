@@ -6,10 +6,10 @@ from airflow.models.dag import DAG
 from airflow.providers.databricks.operators.databricks import (
     DatabricksTaskOperator,
 )
-from commons.enums import AirflowConnections, DatabricksClusters
+from commons.enums import AirflowConnections, DatabricksClusters, SilverDatasets
 
 
-def load_dataset_into_silver(dataset: str):
+def load_dataset_into_silver(dataset: SilverDatasets):
     return DatabricksTaskOperator(
         task_id=f"load-{dataset}-into-silver",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
@@ -33,11 +33,13 @@ with DAG(
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
 
-    load_detalle_facturas = load_dataset_into_silver("detalle_facturas")
-    load_facturas = load_dataset_into_silver("facturas")
+    load_detalle_facturas = load_dataset_into_silver(SilverDatasets.DETALLE_FACTURAS)
+    load_facturas = load_dataset_into_silver(SilverDatasets.FACTURAS)
 
-    load_detalle_notas_credito = load_dataset_into_silver("detalle_notas_credito")
-    load_notas_credito = load_dataset_into_silver("notas_credito")
+    load_detalle_notas_credito = load_dataset_into_silver(
+        SilverDatasets.DETALLE_NOTAS_CREDITO
+    )
+    load_notas_credito = load_dataset_into_silver(SilverDatasets.NOTAS_CREDITO)
 
     chain(
         start,
