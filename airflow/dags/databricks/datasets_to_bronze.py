@@ -56,7 +56,7 @@ with DAG(
 
     trigger_silver_dag = TriggerDagRunOperator(
         task_id="trigger_datasets_to_silver_dag",
-        trigger_dag_id="ingest_datasets_to_silver",
+        trigger_dag_id="ingest_datasets_into_silver",
         wait_for_completion=False,
     )
 
