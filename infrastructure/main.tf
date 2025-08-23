@@ -192,12 +192,6 @@ module "single_node_compute" {
   git_repo_https_url      = var.git_repo_https_url
 }
 
-# L2 Databricks
-
-module "l2_databricks" {
-  source = "./modules/L2/databricks"
-}
-
 # Azure k8s Cluster
 
 module "aks" {
