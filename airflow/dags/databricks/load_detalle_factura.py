@@ -21,7 +21,7 @@ with DAG(
     # )
 
     load_facturas_into_bronze = DatabricksTaskOperator(
-        task_id="Load Facturas into Bronze",
+        task_id="load-facturas-into-bronze",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
         existing_cluster_id=DatabricksClusters.SHARED_CLUSTER.split("/")[-1],
         task_config={
@@ -34,7 +34,7 @@ with DAG(
     )
 
     load_facturas_into_silver = DatabricksTaskOperator(
-        task_id="Load Facturas into Silver",
+        task_id="load-facturas-into-silver",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
         existing_cluster_id=DatabricksClusters.SHARED_CLUSTER.split("/")[-1],
         task_config={
