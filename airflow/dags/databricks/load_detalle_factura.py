@@ -5,7 +5,7 @@ from airflow.providers.databricks.operators.databricks import (
     DatabricksRunNowOperator,
     DatabricksTaskOperator,
 )
-from commons.enums import AirflowConnections
+from commons.enums import AirflowConnections, DatabricksClusters
 
 with DAG(
     dag_id="load_detalle_factura",
@@ -13,21 +13,35 @@ with DAG(
     schedule=None,
     tags=["databricks", "sql", "detalle_factura"],
 ) as dag:
-    opr_run_now = DatabricksRunNowOperator(
-        task_id="load_sample_table",
-        databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
-        job_id="1043258284634899",
-        notebook_params={"dataset": "facturas", "workload": "batch"},
-    )
+    # opr_run_now = DatabricksRunNowOperator(
+    #     task_id="load_sample_table",
+    #     databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
+    #     job_id="1043258284634899",
+    #     notebook_params={"dataset": "facturas", "workload": "batch"},
+    # )
 
-    task_run = DatabricksTaskOperator(
-        task_id="test1",
+    load_facturas_into_bronze = DatabricksTaskOperator(
+        task_id="Load Facturas into Bronze",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
-        existing_cluster_id="0811-190647-smbozjci",
+        existing_cluster_id=DatabricksClusters.SHARED_CLUSTER.split("/")[-1],
         task_config={
             "notebook_task": {
                 "notebook_path": "/Repos/ucm_tfm/databricks_notebooks/databricks_notebooks/Bronze",
                 "source": "WORKSPACE",
+                "base_parameters": {"dataset": "facturas", "workload": "batch"},
+            },
+        },
+    )
+
+    load_facturas_into_silver = DatabricksTaskOperator(
+        task_id="Load Facturas into Silver",
+        databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
+        existing_cluster_id=DatabricksClusters.SHARED_CLUSTER.split("/")[-1],
+        task_config={
+            "notebook_task": {
+                "notebook_path": "/Repos/ucm_tfm/databricks_notebooks/databricks_notebooks/Silver",
+                "source": "WORKSPACE",
+                "base_parameters": {"dataset": "facturas", "workload": "batch"},
             },
         },
     )
