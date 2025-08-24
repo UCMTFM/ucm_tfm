@@ -8,13 +8,17 @@ dependencies = [
   "apache-airflow>=3.0.3",
   "apache-airflow-providers-databricks==7.7.0",
   "pyarrow==20.0.0",
-  "loguru==0.7.1",
+  "loguru>=0.7.1",
   "pandas>=2.1.2",
   "confluent-kafka==2.10.0",
-  "httpx==0.28.1",
+  "databricks-sdk>=0.12.0",
   "attrs==25.3.0",
   "Authlib==1.5.2",
   "pytest==8.3.4",
+  "pytelegrambotapi>=4.14.0",
+  "databricks-connect>=15.4.4",
+  "grpcio>=1.74.0",
+  "grpcio-status==1.59.3",
 ]
 
 [build-system]
