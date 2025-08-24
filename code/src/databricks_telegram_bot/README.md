@@ -1,260 +1,335 @@
-# Databricks Genie Telegram Bot
+# Databricks Telegram Bot
 
-A Telegram bot that integrates with Databricks Genie to provide natural language query capabilities for your data lakehouse. Users can ask questions in plain English and receive formatted results directly in Telegram.
+A Telegram bot that provides natural language interface to Databricks using Genie AI. Ask questions in plain English and get SQL queries, results, and explanations directly in your Telegram chat.
 
-## Features
+## ✨ Features
 
 - **Natural Language Queries**: Ask questions in plain English about your data
-- **Databricks Genie Integration**: Leverages Databricks Genie API for intelligent query generation
-- **Telegram Bot Interface**: Easy-to-use chat interface
-- **Synchronous Architecture**: Simple, reliable synchronous operations
-- **Table Discovery**: Browse available tables with `/tables` command
-- **Formatted Results**: Clean, readable query results with SQL preview
-- **User Authorization**: Configurable user access control
+- **SQL Generation**: Automatically generates SQL queries using Databricks Genie
+- **Data Results**: Returns query results formatted for Telegram
+- **Table Discovery**: List and explore available tables in your Databricks workspace
+- **User Authorization**: Secure access control with authorized user lists
+- **Real-time Status**: Check bot and Databricks connection status
+- **Error Handling**: Graceful error handling with user-friendly messages
+- **Logging**: Comprehensive logging for monitoring and debugging
 
-## Architecture
-
-### Core Components
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Telegram Bot  │───▶│  Databricks      │───▶│  Databricks     │
-│                 │    │  Genie Client    │    │  Genie API      │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │
-         │                       │
-         ▼                       ▼
-┌─────────────────┐    ┌──────────────────┐
-│   User Input    │    │  Configuration   │
-│   Processing    │    │  Management      │
-└─────────────────┘    └──────────────────┘
-```
-
-### Technology Stack
-
-- Python 3.11+
-- Databricks workspace with Genie enabled
-- Telegram bot token
-- Databricks access token
-
-## Installation
+## 🚀 Quick Start
 
 ### Prerequisites
 
-1. **Clone and navigate to the bot directory**:
+- Python 3.11 or higher
+- [uv](https://docs.astral.sh/uv/) package manager
+- Databricks workspace with Genie enabled
+- Telegram Bot Token (from [@BotFather](https://t.me/botfather))
+- Telegram User ID (from [@userinfobot](https://t.me/userinfobot))
+
+### Installation
+
+1. **Clone the repository**:
    ```bash
-   cd code/src/databricks_telegram_bot
+   git clone <repository-url>
+   cd code
    ```
 
-2. **Run the deployment script**:
+2. **Install dependencies using uv**:
    ```bash
-   ./deploy.sh
+   # Install uv if you haven't already
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   
+   # Install project dependencies
+   uv sync
    ```
 
-The script will:
-- Check Python version
-- Create virtual environment
-- Install dependencies
-- Validate configuration
-- Start the bot
-
-### Manual Installation
-
-1. **Set up environment**:
+3. **Configuration**:
    ```bash
+   cd src/databricks_telegram_bot
    cp env.example .env
-   # Edit .env with your configuration
-   ```
-
-2. **Create virtual environment**:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
+   # Edit .env with your credentials
    ```
 
 4. **Run the bot**:
    ```bash
-   python -m databricks_telegram_bot.main
+   # From the code/ directory
+   uv run python src/databricks_telegram_bot/main.py
    ```
 
 ## ⚙️ Configuration
 
-Create a `.env` file with the following variables:
+### Environment Variables
+
+Create a `.env` file based on `env.example`:
+
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `DATABRICKS_WORKSPACE_URL` | ✅ | Your Databricks workspace URL | - |
+| `DATABRICKS_ACCESS_TOKEN` | ✅ | Databricks personal access token | - |
+| `DATABRICKS_CATALOG` | ❌ | Data catalog name | `hive_metastore` |
+| `DATABRICKS_SCHEMA` | ❌ | Schema name | `default` |
+| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from @BotFather | - |
+| `TELEGRAM_ALLOWED_USERS` | ✅ | Comma-separated user IDs | - |
+| `LOG_LEVEL` | ❌ | Logging level | `INFO` |
+| `MAX_QUERY_TIMEOUT` | ❌ | Query timeout in seconds | `300` |
+
+### Getting Required Credentials
+
+#### Databricks Access Token
+1. Go to your Databricks workspace
+2. Click on your profile → User Settings
+3. Go to Access Tokens tab
+4. Generate New Token
+5. Copy the token to `DATABRICKS_ACCESS_TOKEN`
+
+#### Telegram Bot Token
+1. Message [@BotFather](https://t.me/botfather) on Telegram
+2. Send `/newbot` command
+3. Follow the prompts to create your bot
+4. Copy the token to `TELEGRAM_BOT_TOKEN`
+
+#### Telegram User ID
+1. Message [@userinfobot](https://t.me/userinfobot) on Telegram
+2. Copy your user ID to `TELEGRAM_ALLOWED_USERS`
+
+## 🤖 Bot Commands
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Welcome message and bot introduction |
+| `/help` | Show available commands |
+| `/tables` | List available tables in your Databricks workspace |
+| `/status` | Check bot and Databricks connection status |
+
+## 💬 Usage Examples
+
+### Natural Language Queries
+
+```
+User: Show me the top 10 customers by revenue this year
+
+Bot: Here's your query result:
+
+**SQL Query:**
+SELECT customer_name, SUM(revenue) as total_revenue 
+FROM sales_data 
+WHERE year = 2025 
+GROUP BY customer_name 
+ORDER BY total_revenue DESC 
+LIMIT 10
+
+**Results:**
+Customer A: $125,000
+Customer B: $98,500
+...
+
+**Explanation:**
+This query finds the top 10 customers by total revenue in 2025 by summing revenue per customer and ordering by total revenue in descending order.
+```
+
+### Table Discovery
+
+```
+User: /tables
+
+Bot: Available Tables in your workspace:
+
+📊 **sales_data** (default.sales_data)
+- Schema: default
+- Full name: hive_metastore.default.sales_data
+
+📊 **customer_info** (default.customer_info)  
+- Schema: default
+- Full name: hive_metastore.default.customer_info
+
+📊 **product_catalog** (default.product_catalog)
+- Schema: default  
+- Full name: hive_metastore.default.product_catalog
+```
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Telegram User  │◄──►│ Telegram Bot API │◄──►│ DatabricksTele- │
+└─────────────────┘    └──────────────────┘    │   gramBot       │
+                                               └─────────────────┘
+                                                        │
+                                                        ▼
+                                               ┌─────────────────┐
+                                               │ DatabricksGenie │
+                                               │    Client       │
+                                               └─────────────────┘
+                                                        │
+                                                        ▼
+                                               ┌─────────────────┐
+                                               │ Databricks      │
+                                               │ Genie API       │
+                                               └─────────────────┘
+```
+
+### Components
+
+- **`main.py`**: Application entry point and lifecycle management
+- **`telegram_bot.py`**: Telegram bot interface and message handling
+- **`databricks_client.py`**: Databricks Genie API client
+- **`config.py`**: Configuration management and validation
+
+## 🐳 Docker Deployment
+
+### Build and Run
 
 ```bash
-# Databricks Configuration
-DATABRICKS_WORKSPACE_URL=https://your-workspace.cloud.databricks.com
-DATABRICKS_ACCESS_TOKEN=your_databricks_token
-DATABRICKS_CATALOG=hive_metastore
-DATABRICKS_SCHEMA=default
+# Build the image (from code/ directory)
+docker build -f src/databricks_telegram_bot/Dockerfile -t databricks-telegram-bot .
 
-# Telegram Configuration
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-TELEGRAM_ALLOWED_USERS=123456789,987654321
-
-# Application Configuration
-LOG_LEVEL=INFO
-MAX_QUERY_TIMEOUT=300
+# Run with environment file
+docker run -d --name databricks-bot --env-file src/databricks_telegram_bot/.env databricks-telegram-bot
 ```
 
-## Usage
-
-### Starting the Bot
+### Docker Compose
 
 ```bash
-python -m src.databricks_telegram_bot.main
+# From src/databricks_telegram_bot/ directory
+cd src/databricks_telegram_bot
+
+# Start the bot
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the bot
+docker-compose down
 ```
 
-### Bot Commands
-
-- `/start` - Initialize the bot and check authorization
-- `/tables` - List available tables in your catalog/schema
-- `/help` - Show available commands
-
-### Example Queries
-
-- "What is our highest total value invoice?"
-- "Show me the top 5 customers by sales"
-- "How many invoices do we have from last month?"
-- "What's the average order value?"
-
-## Configuration
-
-### Databricks Setup
-
-1. **Enable Genie**: Ensure Genie is enabled in your Databricks workspace
-2. **Permissions**: Your token needs access to:
-   - SQL warehouses
-   - Unity Catalog (if using)
-   - Genie API
-3. **Workspace URL**: Use your workspace URL (e.g., `https://your-workspace.cloud.databricks.com`)
-
-### Telegram Setup
-
-1. **Create Bot**: Message @BotFather on Telegram
-2. **Get Token**: Save the bot token provided
-3. **Authorize Users**: Add user IDs to `TELEGRAM_AUTHORIZED_USERS`
-
-## Development
-
-### Project Structure
-
-```
-src/databricks_telegram_bot/
-├── __init__.py
-├── main.py                 # Application entry point
-├── config.py              # Configuration management
-├── databricks_client.py   # Databricks Genie client
-├── telegram_bot.py        # Telegram bot implementation
-├── health_check.py        # Health monitoring
-└── setup.py              # Package configuration
-```
+## 🧪 Testing
 
 ### Running Tests
 
 ```bash
-# Run all tests
-pytest
+# From the code/ directory
+# Install test dependencies (if not already installed)
+uv add --dev pytest pytest-mock pytest-cov
 
-# Run specific test file
-pytest test/test_databricks_client.py
+# Run all tests
+uv run pytest test/databricks_telegram_bot/
 
 # Run with coverage
-pytest --cov=src.databricks_telegram_bot
+uv run pytest test/databricks_telegram_bot/ --cov=src/databricks_telegram_bot --cov-report=html
 
-# Run specific test class
-pytest test/test_databricks_client.py::TestDatabricksGenieClient
+# Run specific test file
+uv run pytest test/databricks_telegram_bot/test_config.py -v
 ```
 
-### Testing Structure
+### Test Structure
 
-Tests are organized by source file with pytest classes:
-
-- `test_databricks_client.py` - Tests for DatabricksGenieClient
-- `test_telegram_bot.py` - Tests for DatabricksTelegramBot
-- `test_main.py` - Tests for main application
-- `test_config.py` - Tests for configuration management
-
-## API Reference
-
-### DatabricksGenieClient
-
-Main client for interacting with Databricks Genie API.
-
-```python
-from src.databricks_telegram_bot.databricks_client import DatabricksGenieClient
-
-client = DatabricksGenieClient(config)
-
-# Send natural language query
-response = client.query_genie("What is our highest sale?")
-
-# Get available tables
-tables = client.get_available_tables()
+```
+test/
+├── databricks_telegram_bot/
+│   ├── test_config.py           # Configuration tests
+│   ├── test_databricks_client.py # Databricks client tests
+│   ├── test_telegram_bot.py     # Telegram bot tests
+│   └── test_main.py             # Main application tests
+├── conftest.py                  # Shared fixtures
+└── pytest.ini                  # Test configuration
 ```
 
-### DatabricksTelegramBot
+## 📊 Monitoring and Logging
 
-Telegram bot implementation using pytelegrambotapi.
+### Log Files
 
-```python
-from src.databricks_telegram_bot.telegram_bot import DatabricksTelegramBot
+- **Console**: Real-time logs with INFO level
+- **File**: `logs/bot.log` with DEBUG level (rotated daily)
+- **Errors**: Critical errors logged with full stack traces
 
-bot = DatabricksTelegramBot(config, databricks_client)
-bot.start()  # Start polling
+### Log Levels
+
+- `DEBUG`: Detailed information for debugging
+- `INFO`: General information about bot operations
+- `WARNING`: Warning messages about potential issues
+- `ERROR`: Error messages for failed operations
+
+### Health Monitoring
+
+The bot provides several endpoints for monitoring:
+
+- **PID File**: `bot.pid` for process management
+- **Status Command**: `/status` for connection health
+- **Graceful Shutdown**: Signal handling for clean stops
+
+## 🔒 Security Considerations
+
+### Access Control
+- Only authorized Telegram users can interact with the bot
+- User IDs are validated on every message
+- Unauthorized access attempts are logged
+
+### Data Protection
+- No data is stored permanently by the bot
+- Query results are only sent to authorized users
+- Sensitive configuration is loaded from environment variables
+
+### Network Security
+- All communications use HTTPS/TLS
+- Databricks tokens are securely transmitted
+- No credentials are logged or exposed
+
+## 🛠️ Development
+
+### Dependency Management
+
+This project uses [uv](https://docs.astral.sh/uv/) for fast and reliable dependency management:
+
+```bash
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install project dependencies
+uv sync
+
+# Add a new dependency
+uv add package-name
+
+# Add a development dependency
+uv add --dev package-name
+
+# Update dependencies
+uv lock --upgrade
+
+# Run commands in the project environment
+uv run python src/databricks_telegram_bot/main.py
 ```
 
-## Troubleshooting
+### Project Structure
 
-### Common Issues
-
-1. **"Query timed out"**: Increase timeout in configuration or check warehouse status
-2. **"Unauthorized user"**: Add user ID to `TELEGRAM_AUTHORIZED_USERS`
-3. **"No tables found"**: Check catalog/schema configuration and permissions
-4. **"Genie API error"**: Verify Genie is enabled and token has proper permissions
-
-### Logging
-
-The application uses structured logging with loguru. Log levels can be configured via `LOG_LEVEL`:
-
-- `DEBUG`: Detailed debugging information
-- `INFO`: General application flow
-- `WARNING`: Warning messages
-- `ERROR`: Error conditions
-
-### Health Check
-
-Monitor bot health with the built-in health check:
-
-```python
-from src.databricks_telegram_bot.health_check import HealthChecker
-
-checker = HealthChecker(config)
-status = checker.check_health()
+```
+code/                          # Root project directory
+├── pyproject.toml            # Project configuration and dependencies
+├── uv.lock                   # Locked dependency versions
+├── src/
+│   └── databricks_telegram_bot/
+│       ├── __init__.py
+│       ├── main.py           # Application entry point
+│       ├── config.py         # Configuration management
+│       ├── databricks_client.py # Databricks API client
+│       ├── telegram_bot.py   # Telegram bot implementation
+│       ├── env.example       # Environment template
+│       ├── Dockerfile        # Docker configuration
+│       ├── docker-compose.yml # Docker Compose setup
+│       ├── setup.py          # Package setup
+│       └── logs/             # Log directory
+└── test/
+    └── databricks_telegram_bot/ # Test files
 ```
 
-## Contributing
+### Adding Features
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
+1. **New Commands**: Add handlers in `telegram_bot.py`
+2. **Databricks Features**: Extend `databricks_client.py`
+3. **Configuration**: Update `config.py` and `env.example`
+4. **Tests**: Add corresponding test files
 
-## License
+### Code Style
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For issues and questions:
-1. Check the troubleshooting section
-2. Review the logs for error details
-3. Open an issue on GitHub with relevant information
-
+- **Formatting**: Use `black` for code formatting
+- **Linting**: Use `flake8` for code linting
+- **Type Hints**: Use type hints for better code documentation
+- **Docstrings**: Document all public functions and classes
