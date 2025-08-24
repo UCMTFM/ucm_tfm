@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  databricks-telegram-bot:
+    build: .
+    container_name: databricks-genie-bot
+    restart: unless-stopped
+    environment:
+      # Databricks Configuration
+      - DATABRICKS_WORKSPACE_URL=${DATABRICKS_WORKSPACE_URL}
+      - DATABRICKS_ACCESS_TOKEN=${DATABRICKS_ACCESS_TOKEN}
+      - DATABRICKS_CATALOG=${DATABRICKS_CATALOG:-hive_metastore}
+      - DATABRICKS_SCHEMA=${DATABRICKS_SCHEMA:-default}
+      
+      # Telegram Configuration
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS}
+      
+      # Application Configuration
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_QUERY_TIMEOUT=${MAX_QUERY_TIMEOUT:-300}
+    
+    volumes:
+      - ./logs:/app/logs
+    
+    networks:
+      - bot-network
+    
+    healthcheck:
+      test: ["CMD", "python", "health_check.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  bot-network:
+    driver: bridge
