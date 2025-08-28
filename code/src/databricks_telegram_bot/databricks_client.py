@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional, List
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.dashboards import GenieAPI
 from loguru import logger
-from .config import DatabricksConfig
+from databricks_telegram_bot.config import DatabricksConfig
 
 
 class DatabricksGenieClient: 

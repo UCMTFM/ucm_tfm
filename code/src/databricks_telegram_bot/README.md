@@ -1,17 +1,30 @@
-# Databricks Telegram Bot
+# Databricks Telegram Bot & Chat UI
 
-A Telegram bot that provides natural language interface to Databricks using Genie AI. Ask questions in plain English and get SQL queries, results, and explanations directly in your Telegram chat.
+A comprehensive solution providing multiple interfaces to interact with Databricks using Genie AI. Ask questions in plain English and get SQL queries, results, and explanations through Telegram or a modern web interface.
 
 ## ✨ Features
 
+### 🤖 Telegram Bot
 - **Natural Language Queries**: Ask questions in plain English about your data
 - **SQL Generation**: Automatically generates SQL queries using Databricks Genie
 - **Data Results**: Returns query results formatted for Telegram
 - **Table Discovery**: List and explore available tables in your Databricks workspace
 - **User Authorization**: Secure access control with authorized user lists
 - **Real-time Status**: Check bot and Databricks connection status
+
+### 🌐 Streamlit Web UI
+- **Interactive Chat Interface**: Modern web-based chat for data exploration
+- **Visual Data Display**: Rich tables, charts, and data visualization
+- **Chat History**: Persistent conversation history with expandable previous chats
+- **Sample Queries**: Pre-built example queries to get started quickly
+- **Responsive Design**: Works on desktop and mobile devices
+- **Real-time Results**: Live query execution with progress indicators
+
+### 🛠️ Shared Features
 - **Error Handling**: Graceful error handling with user-friendly messages
-- **Logging**: Comprehensive logging for monitoring and debugging
+- **Comprehensive Logging**: Full logging for monitoring and debugging
+- **Flexible Configuration**: Environment-based configuration
+- **Docker Support**: Containerized deployment options
 
 ## 🚀 Quick Start
 
@@ -20,8 +33,8 @@ A Telegram bot that provides natural language interface to Databricks using Geni
 - Python 3.11 or higher
 - [uv](https://docs.astral.sh/uv/) package manager
 - Databricks workspace with Genie enabled
-- Telegram Bot Token (from [@BotFather](https://t.me/botfather))
-- Telegram User ID (from [@userinfobot](https://t.me/userinfobot))
+- Telegram Bot Token (from [@BotFather](https://t.me/botfather)) - for Telegram bot only
+- Telegram User ID (from [@userinfobot](https://t.me/userinfobot)) - for Telegram bot only
 
 ### Installation
 
@@ -36,22 +49,51 @@ A Telegram bot that provides natural language interface to Databricks using Geni
    # Install uv if you haven't already
    curl -LsSf https://astral.sh/uv/install.sh | sh
    
-   # Install project dependencies
+   # Install project dependencies (includes Streamlit)
    uv sync
    ```
 
 3. **Configuration**:
    ```bash
-   cd src/databricks_telegram_bot
-   cp env.example .env
+   # Copy environment template
+   cp .env.example .env
    # Edit .env with your credentials
    ```
 
-4. **Run the bot**:
-   ```bash
-   # From the code/ directory
-   uv run python src/databricks_telegram_bot/main.py
-   ```
+### Running the Applications
+
+#### 🤖 Telegram Bot
+```bash
+# From the project root
+source .env && make run-bot
+# or
+uv run -m src.databricks_telegram_bot.main
+```
+
+#### 🌐 Streamlit Web UI
+```bash
+# From the project root
+source .env && make run-chat
+# or
+source .env && uv run streamlit run src/databricks_telegram_bot/streamlit_ui.py --server.port 8501 --server.address 0.0.0.0
+```
+
+Access the web interface at: http://localhost:8501
+
+#### 🐳 Docker Options
+```bash
+# Build the universal image
+make build
+
+# Run Telegram bot in Docker
+source .env && make docker-run-bot
+
+# Run Streamlit UI in Docker
+source .env && make docker-run-chat
+
+# Custom port for Streamlit
+source .env && STREAMLIT_PORT=8080 make docker-run-chat
+```
 
 ## ⚙️ Configuration
 
@@ -59,16 +101,19 @@ A Telegram bot that provides natural language interface to Databricks using Geni
 
 Create a `.env` file based on `env.example`:
 
-| Variable | Required | Description | Default |
-|----------|----------|-------------|---------|
-| `DATABRICKS_WORKSPACE_URL` | ✅ | Your Databricks workspace URL | - |
-| `DATABRICKS_ACCESS_TOKEN` | ✅ | Databricks personal access token | - |
-| `DATABRICKS_CATALOG` | ❌ | Data catalog name | `hive_metastore` |
-| `DATABRICKS_SCHEMA` | ❌ | Schema name | `default` |
-| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from @BotFather | - |
-| `TELEGRAM_ALLOWED_USERS` | ✅ | Comma-separated user IDs | - |
-| `LOG_LEVEL` | ❌ | Logging level | `INFO` |
-| `MAX_QUERY_TIMEOUT` | ❌ | Query timeout in seconds | `300` |
+| Variable | Required | Description | Default | Used By |
+|----------|----------|-------------|---------|---------|
+| `DATABRICKS_WORKSPACE_URL` | ✅ | Your Databricks workspace URL | - | Both |
+| `DATABRICKS_ACCESS_TOKEN` | ✅ | Databricks personal access token | - | Both |
+| `DATABRICKS_CATALOG` | ❌ | Data catalog name | `hive_metastore` | Both |
+| `DATABRICKS_SCHEMA` | ❌ | Schema name | `default` | Both |
+| `TELEGRAM_BOT_TOKEN` | ✅* | Bot token from @BotFather | - | Telegram Bot |
+| `TELEGRAM_ALLOWED_USERS` | ✅* | Comma-separated user IDs | - | Telegram Bot |
+| `LOG_LEVEL` | ❌ | Logging level | `INFO` | Both |
+| `MAX_QUERY_TIMEOUT` | ❌ | Query timeout in seconds | `300` | Both |
+| `STREAMLIT_PORT` | ❌ | Port for Streamlit UI | `8501` | Streamlit UI |
+
+*Required only for Telegram bot functionality
 
 ### Getting Required Credentials
 
@@ -89,7 +134,51 @@ Create a `.env` file based on `env.example`:
 1. Message [@userinfobot](https://t.me/userinfobot) on Telegram
 2. Copy your user ID to `TELEGRAM_ALLOWED_USERS`
 
-## 🤖 Bot Commands
+## 🌐 Streamlit Web Interface
+
+The Streamlit UI provides a modern, interactive web interface for data exploration.
+
+### Features
+- **📱 Responsive Design**: Works on desktop and mobile
+- **🤖 Interactive Chat**: Real-time conversation with Genie AI
+- **📊 Rich Data Display**: Tables, charts, and visualizations
+- **📝 Smart History**: Last 2 chats expanded, others collapsed
+- **💡 Sample Queries**: Click-to-use example questions
+- **⚙️ Configuration Display**: Current workspace information
+- **🔄 Auto-clear Input**: Input field clears after each question
+
+### Usage
+1. **Start the UI**: `source .env && make run-chat`
+2. **Open Browser**: Navigate to http://localhost:8501
+3. **Ask Questions**: Type natural language queries
+4. **Explore Data**: View results in formatted tables
+5. **Review History**: Access previous conversations
+
+### Sample Interface
+```
+🤖 Databricks Genie Chat
+Ask questions about your data in natural language!
+
+💬 Ask a Question
+┌─────────────────────────────────────────────┐
+│ Show me the top 10 customers by revenue    │ [🚀 Ask]
+└─────────────────────────────────────────────┘
+
+📝 Chat History
+▼ 🕐 14:32:15 - Show me the top 10 customers by revenue
+   **Question:** Show me the top 10 customers by revenue
+   **SQL Query:**
+   SELECT customer_name, SUM(revenue) as total_revenue...
+   
+▼ 🕐 14:30:22 - What are total sales by month?
+   **Question:** What are total sales by month?
+   ...
+
+▷ 🕐 14:28:18 - List all product categories
+▷ 🕐 14:25:33 - Show me customer distribution
+```
+
+## 🤖 Telegram Bot Commands
 
 | Command | Description |
 |---------|-------------|
@@ -147,57 +236,98 @@ Bot: Available Tables in your workspace:
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│  Telegram User  │◄──►│ Telegram Bot API │◄──►│ DatabricksTele- │
-└─────────────────┘    └──────────────────┘    │   gramBot       │
-                                               └─────────────────┘
-                                                        │
-                                                        ▼
-                                               ┌─────────────────┐
-                                               │ DatabricksGenie │
-                                               │    Client       │
-                                               └─────────────────┘
-                                                        │
-                                                        ▼
-                                               ┌─────────────────┐
-                                               │ Databricks      │
-                                               │ Genie API       │
-                                               └─────────────────┘
+                    ┌─────────────────┐
+                    │  End Users      │
+                    └─────────────────┘
+                           │
+                           ▼
+     ┌─────────────────────────────────────────────────┐
+     │                                                 │
+     ▼                                                 ▼
+┌─────────────────┐                          ┌─────────────────┐
+│ Telegram Bot    │                          │ Streamlit UI    │
+│ Interface       │                          │ (Port 8501)     │
+└─────────────────┘                          └─────────────────┘
+     │                                                 │
+     └─────────────────┐     ┌─────────────────────────┘
+                       │     │
+                       ▼     ▼
+              ┌─────────────────────┐
+              │ DatabricksGenie     │
+              │ Client (Shared)     │
+              └─────────────────────┘
+                       │
+                       ▼
+              ┌─────────────────────┐
+              │ Databricks          │
+              │ Genie API           │
+              └─────────────────────┘
 ```
 
 ### Components
 
 - **`main.py`**: Application entry point and lifecycle management
 - **`telegram_bot.py`**: Telegram bot interface and message handling
-- **`databricks_client.py`**: Databricks Genie API client
+- **`streamlit_ui.py`**: Streamlit web interface for interactive chat
+- **`databricks_client.py`**: Shared Databricks Genie API client
 - **`config.py`**: Configuration management and validation
+- **`Dockerfile`**: Universal container supporting both interfaces
+- **`Makefile`**: Development and deployment commands
 
 ## 🐳 Docker Deployment
 
-### Build and Run
+### Universal Docker Image
+
+The project provides a single Docker image that can run both the Telegram bot and Streamlit UI using environment variables.
 
 ```bash
-# Build the image (from code/ directory)
-docker build -f src/databricks_telegram_bot/Dockerfile -t databricks-telegram-bot .
+# Build the universal image
+make build
 
-# Run with environment file
-docker run -d --name databricks-bot --env-file src/databricks_telegram_bot/.env databricks-telegram-bot
+# Run Telegram bot
+source .env && make docker-run-bot
+
+# Run Streamlit UI (default port 8501)
+source .env && make docker-run-chat
+
+# Run Streamlit UI on custom port
+source .env && STREAMLIT_PORT=8080 make docker-run-chat
+
+# Run with custom module
+source .env && make docker-run-module MODULE=your.custom.module
 ```
 
-### Docker Compose
+### Available Make Commands
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Build the universal Docker image |
+| `make docker-run-bot` | Run Telegram bot in container |
+| `make docker-run-chat` | Run Streamlit UI in container |
+| `make docker-run-bash` | Open bash shell in container |
+| `make docker-run-module MODULE=x` | Run custom module |
+| `make test` | Run all tests |
+| `make clean` | Clean up cache files |
+
+### Direct Docker Commands
 
 ```bash
-# From src/databricks_telegram_bot/ directory
-cd src/databricks_telegram_bot
+# Run Telegram bot
+docker run --rm -it \
+  -e DATABRICKS_WORKSPACE_URL=your-url \
+  -e DATABRICKS_ACCESS_TOKEN=your-token \
+  -e TELEGRAM_BOT_TOKEN=your-bot-token \
+  -e TELEGRAM_ALLOWED_USERS=user-ids \
+  -e ENTRYPOINT_MODULE=src.databricks_telegram_bot.main \
+  ucm-tfm-lakehouse:latest
 
-# Start the bot
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the bot
-docker-compose down
+# Run Streamlit UI
+docker run --rm -it \
+  -p 8501:8501 \
+  -e DATABRICKS_WORKSPACE_URL=your-url \
+  -e DATABRICKS_ACCESS_TOKEN=your-token \
+  ucm-tfm-lakehouse:latest \
+  streamlit run src/databricks_telegram_bot/streamlit_ui.py --server.port 8501 --server.address 0.0.0.0
 ```
 
 ## 🧪 Testing
@@ -205,24 +335,24 @@ docker-compose down
 ### Running Tests
 
 ```bash
-# From the code/ directory
-# Install test dependencies (if not already installed)
-uv add --dev pytest pytest-mock pytest-cov
-
+# From the project root directory
 # Run all tests
-uv run pytest test/databricks_telegram_bot/
+make test
 
 # Run with coverage
-uv run pytest test/databricks_telegram_bot/ --cov=src/databricks_telegram_bot --cov-report=html
+make test-coverage
+
+# Run tests in Docker
+source .env && make docker-run-module MODULE=pytest
 
 # Run specific test file
-uv run pytest test/databricks_telegram_bot/test_config.py -v
+uv run pytest tests/databricks_telegram_bot/test_config.py -v
 ```
 
 ### Test Structure
 
 ```
-test/
+tests/
 ├── databricks_telegram_bot/
 │   ├── test_config.py           # Configuration tests
 │   ├── test_databricks_client.py # Databricks client tests
@@ -231,46 +361,6 @@ test/
 ├── conftest.py                  # Shared fixtures
 └── pytest.ini                  # Test configuration
 ```
-
-## 📊 Monitoring and Logging
-
-### Log Files
-
-- **Console**: Real-time logs with INFO level
-- **File**: `logs/bot.log` with DEBUG level (rotated daily)
-- **Errors**: Critical errors logged with full stack traces
-
-### Log Levels
-
-- `DEBUG`: Detailed information for debugging
-- `INFO`: General information about bot operations
-- `WARNING`: Warning messages about potential issues
-- `ERROR`: Error messages for failed operations
-
-### Health Monitoring
-
-The bot provides several endpoints for monitoring:
-
-- **PID File**: `bot.pid` for process management
-- **Status Command**: `/status` for connection health
-- **Graceful Shutdown**: Signal handling for clean stops
-
-## 🔒 Security Considerations
-
-### Access Control
-- Only authorized Telegram users can interact with the bot
-- User IDs are validated on every message
-- Unauthorized access attempts are logged
-
-### Data Protection
-- No data is stored permanently by the bot
-- Query results are only sent to authorized users
-- Sensitive configuration is loaded from environment variables
-
-### Network Security
-- All communications use HTTPS/TLS
-- Databricks tokens are securely transmitted
-- No credentials are logged or exposed
 
 ## 🛠️ Development
 
@@ -302,34 +392,43 @@ uv run python src/databricks_telegram_bot/main.py
 
 ```
 code/                          # Root project directory
-├── pyproject.toml            # Project configuration and dependencies
-├── uv.lock                   # Locked dependency versions
+├── Makefile                  # Development and deployment commands
+├── Dockerfile               # Universal container configuration
+├── pyproject.toml           # Project configuration and dependencies
+├── uv.lock                  # Locked dependency versions
+├── .env                     # Environment configuration
 ├── src/
 │   └── databricks_telegram_bot/
 │       ├── __init__.py
-│       ├── main.py           # Application entry point
-│       ├── config.py         # Configuration management
+│       ├── main.py          # Telegram bot entry point
+│       ├── streamlit_ui.py  # Streamlit web interface
+│       ├── config.py        # Configuration management
 │       ├── databricks_client.py # Databricks API client
-│       ├── telegram_bot.py   # Telegram bot implementation
-│       ├── env.example       # Environment template
-│       ├── Dockerfile        # Docker configuration
-│       ├── docker-compose.yml # Docker Compose setup
-│       ├── setup.py          # Package setup
-│       └── logs/             # Log directory
-└── test/
-    └── databricks_telegram_bot/ # Test files
+│       ├── telegram_bot.py  # Telegram bot implementation
+│       └── logs/            # Log directory
+├── tests/
+│   └── databricks_telegram_bot/ # Test files
+└── logs/                    # Application logs
 ```
 
-### Adding Features
+### Development Workflow
 
-1. **New Commands**: Add handlers in `telegram_bot.py`
-2. **Databricks Features**: Extend `databricks_client.py`
-3. **Configuration**: Update `config.py` and `env.example`
-4. **Tests**: Add corresponding test files
+```bash
+# Set up development environment
+make install
 
-### Code Style
+# Run Telegram bot locally
+source .env && make run-bot
 
-- **Formatting**: Use `black` for code formatting
-- **Linting**: Use `flake8` for code linting
-- **Type Hints**: Use type hints for better code documentation
-- **Docstrings**: Document all public functions and classes
+# Run Streamlit UI locally  
+source .env && make run-chat
+
+# Run tests
+make test
+
+# Build Docker image
+make build
+
+# Clean up
+make clean
+``

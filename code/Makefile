@@ -6,6 +6,7 @@ DOCKER_TAG = latest
 DOCKERFILE_PATH = Dockerfile
 DOCKER_CONTEXT = .
 TEST_PATHS = tests/ test/
+STREAMLIT_PORT ?= 8501
 
 # Default target
 .DEFAULT_GOAL := help
@@ -66,6 +67,12 @@ run-bot: ## Run the Telegram bot locally
 	@echo "Starting Telegram bot..."
 	uv run -m src.databricks_telegram_bot.main
 
+# Run Streamlit UI locally
+.PHONY: run-chat
+run-chat: ## Run the Streamlit UI locally
+	@echo "Starting Streamlit UI on port $(STREAMLIT_PORT)..."
+	uv run streamlit run src/databricks_telegram_bot/streamlit_ui.py --server.port $(STREAMLIT_PORT) --server.address 0.0.0.0
+
 # Docker operations
 .PHONY: docker-run
 docker-run: ## Run the Docker container (default: telegram bot)
@@ -114,3 +121,19 @@ docker-run-bot: ## Run the Docker container with telegram bot
 		-e MAX_QUERY_TIMEOUT=$$MAX_QUERY_TIMEOUT \
 		-e ENTRYPOINT_MODULE=src.databricks_telegram_bot.main \
 		$(DOCKER_IMAGE_NAME):$(DOCKER_TAG)
+
+.PHONY: docker-run-chat
+docker-run-chat: ## Run the Docker container with Streamlit UI
+	@echo "Running Docker container with Streamlit UI on port $(STREAMLIT_PORT)..."
+	docker run --rm -it \
+		-p $(STREAMLIT_PORT):$(STREAMLIT_PORT) \
+		-e PYTHONPATH=$$PYTHONPATH \
+		-e DATABRICKS_WORKSPACE_URL=$$DATABRICKS_WORKSPACE_URL \
+		-e DATABRICKS_ACCESS_TOKEN=$$DATABRICKS_ACCESS_TOKEN \
+		-e DATABRICKS_CATALOG=$$DATABRICKS_CATALOG \
+		-e DATABRICKS_SCHEMA=$$DATABRICKS_SCHEMA \
+		-e LOG_LEVEL=$$LOG_LEVEL \
+		-e MAX_QUERY_TIMEOUT=$$MAX_QUERY_TIMEOUT \
+		--entrypoint sh \
+		$(DOCKER_IMAGE_NAME):$(DOCKER_TAG) \
+		-c "uv run streamlit run src/databricks_telegram_bot/streamlit_ui.py --server.port $(STREAMLIT_PORT) --server.address 0.0.0.0"

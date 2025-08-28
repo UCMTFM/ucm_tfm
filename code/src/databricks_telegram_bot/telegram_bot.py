@@ -1,12 +1,8 @@
-"""
-Telegram bot module for handling user interactions
-"""
-
 import telebot
-from typing import Optional, Dict, Any
+from typing import Optional
 from loguru import logger
-from .config import TelegramConfig
-from .databricks_client import DatabricksGenieClient
+from databricks_telegram_bot.config import TelegramConfig
+from databricks_telegram_bot.databricks_client import DatabricksGenieClient
 
 
 class DatabricksTelegramBot:

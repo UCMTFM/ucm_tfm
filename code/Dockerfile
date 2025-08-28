@@ -37,8 +37,5 @@ RUN useradd --create-home --shell /bin/bash appuser \
   && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port (if needed for health checks or web interfaces)
-EXPOSE 8080
-
 # Use the environment variable to determine what module to run
 CMD ["sh", "-c", "uv run -m $ENTRYPOINT_MODULE"]
