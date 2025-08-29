@@ -88,7 +88,8 @@ class StreamlitGenieChat:
         
         for query in sample_queries:
             if st.sidebar.button(f"💬 {query}", key=f"sample_{hash(query)}"):
-                st.session_state.query_input = query
+                # Set the selected query in session state
+                st.session_state.selected_sample_query = query
                 st.rerun()
     
     def format_response_for_streamlit(self, response: Dict[str, Any]) -> None:
@@ -188,9 +189,6 @@ class StreamlitGenieChat:
                     "timestamp": pd.Timestamp.now()
                 })
                 
-                # Clear the input field after successful query
-                st.session_state.query_text_input = ""
-                
                 # Display the response
                 self.format_response_for_streamlit(response)
         
@@ -237,14 +235,14 @@ class StreamlitGenieChat:
         """Main Streamlit app"""
         # Configure page
         st.set_page_config(
-            page_title="Databricks Genie Chat",
-            page_icon="🤖",
+            page_title="Appinnova: UCM Big Data Master",
+            page_icon="🎓",
             layout="wide",
             initial_sidebar_state="expanded"
         )
         
         # Header
-        st.title("🤖 Databricks Genie Chat")
+        st.title("🎓 Appinnova: UCM Big Data Master")
         st.markdown("Ask questions about your data in natural language!")
         
         # Initialize client
@@ -261,10 +259,17 @@ class StreamlitGenieChat:
         st.markdown("### 💬 Ask a Question")
         
         # Initialize session state for query input
-        if "query_input" not in st.session_state:
-            st.session_state.query_input = ""
-        if "query_text_input" not in st.session_state:
-            st.session_state.query_text_input = ""
+        if "selected_sample_query" not in st.session_state:
+            st.session_state.selected_sample_query = ""
+        if "last_submitted_query" not in st.session_state:
+            st.session_state.last_submitted_query = ""
+        
+        # Check if a sample query was selected
+        default_value = ""
+        if st.session_state.selected_sample_query:
+            default_value = st.session_state.selected_sample_query
+            # Clear it so it doesn't persist
+            st.session_state.selected_sample_query = ""
         
         # Query input
         col1, col2 = st.columns([4, 1])
@@ -272,7 +277,7 @@ class StreamlitGenieChat:
         with col1:
             query = st.text_input(
                 "Enter your question:",
-                value=st.session_state.query_input,
+                value=default_value,
                 placeholder="e.g., Show me the top 10 customers by revenue",
                 key="query_text_input"
             )
@@ -280,26 +285,17 @@ class StreamlitGenieChat:
         with col2:
             submit_button = st.button("🚀 Ask", type="primary")
         
-        # Clear the session state input after using it
-        if st.session_state.query_input:
-            query = st.session_state.query_input
-            st.session_state.query_input = ""
-        
-        # Handle query submission
-        if submit_button and query.strip():
+        # Handle query submission (both Enter key and button click)
+        if (submit_button or (query and query != st.session_state.last_submitted_query)) and query.strip():
+            st.session_state.last_submitted_query = query
             self.handle_query(query)
-            # Force a rerun to clear the input field
-            st.rerun()
-        elif query and query != st.session_state.get("last_query", "") and not submit_button:
-            # Store the query but don't execute until button is pressed
-            st.session_state.last_query = query
         
         # Display chat history
         self.display_chat_history()
         
         # Footer
         st.markdown("---")
-        st.markdown("*Powered by Databricks Genie and Streamlit*")
+        st.markdown("*UCM Big Data Master - Powered by Databricks Genie and Streamlit*")
 
 
 def main():
