@@ -235,6 +235,19 @@ class DatabricksGenieClient:
         """Extract data and metadata from a completed query result"""
         logger.info(f"Extracting query results from: {query_result}")
         
+        # Extract SQL query first, regardless of result status
+        if hasattr(attachment, 'query') and attachment.query:
+            logger.info(f"Extracting SQL query: {attachment.query}")
+            # Check if attachment.query is a GenieQueryAttachment object
+            if hasattr(attachment.query, 'query'):
+                # Extract the actual SQL string from the GenieQueryAttachment
+                sql_string = attachment.query.query
+                logger.info(f"Extracted SQL string: {sql_string}")
+                response_data["sql_query"] = sql_string
+            else:
+                # It's already a string
+                response_data["sql_query"] = attachment.query
+        
         if not query_result:
             logger.warning("No query result to extract from")
             return
@@ -260,29 +273,16 @@ class DatabricksGenieClient:
         else:
             logger.warning("No data array found in result")
         
-        # Extract column names from statement_response.manifest
-        if hasattr(statement_response, 'manifest') and statement_response.manifest:
-            if hasattr(statement_response.manifest, 'schema') and statement_response.manifest.schema:
-                columns = [col.name for col in statement_response.manifest.schema.columns]
+        # Extract column names from statement_response.result.manifest
+        if hasattr(result_data, 'manifest') and result_data.manifest:
+            if hasattr(result_data.manifest, 'schema') and result_data.manifest.schema:
+                columns = [col.name for col in result_data.manifest.schema.columns]
                 logger.info(f"Found columns: {columns}")
                 response_data["result"]["columns"] = columns
             else:
-                logger.warning("No schema found in statement response manifest")
+                logger.warning("No schema found in result manifest")
         else:
-            logger.warning("No manifest found in statement response")
-        
-        # Extract SQL query
-        if hasattr(attachment, 'query') and attachment.query:
-            logger.info(f"Extracting SQL query: {attachment.query}")
-            # Check if attachment.query is a GenieQueryAttachment object
-            if hasattr(attachment.query, 'query'):
-                # Extract the actual SQL string from the GenieQueryAttachment
-                sql_string = attachment.query.query
-                logger.info(f"Extracted SQL string: {sql_string}")
-                response_data["sql_query"] = sql_string
-            else:
-                # It's already a string
-                response_data["sql_query"] = attachment.query
+            logger.warning("No manifest found in result")
         
         # Update summary
         if response_data["result"]["data"]:
