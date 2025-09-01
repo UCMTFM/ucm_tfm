@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock
-from src.databricks_telegram_bot.databricks_client import DatabricksGenieClient
-from src.databricks_telegram_bot.config import DatabricksConfig
+from databricks_telegram_bot.databricks_client import DatabricksGenieClient
+from databricks_telegram_bot.config import DatabricksConfig
 
 
 class TestDatabricksGenieClientInitialization:

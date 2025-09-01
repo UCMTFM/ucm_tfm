@@ -1,6 +1,6 @@
 from unittest.mock import Mock
-from src.databricks_telegram_bot.telegram_bot import DatabricksTelegramBot
-from src.databricks_telegram_bot.config import TelegramConfig
+from databricks_telegram_bot.telegram_bot import DatabricksTelegramBot
+from databricks_telegram_bot.config import TelegramConfig
 
 
 class TestDatabricksTelegramBotUserAuthorization:

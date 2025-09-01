@@ -235,6 +235,19 @@ class DatabricksGenieClient:
         """Extract data and metadata from a completed query result"""
         logger.info(f"Extracting query results from: {query_result}")
         
+        # Extract SQL query first, regardless of result status
+        if hasattr(attachment, 'query') and attachment.query:
+            logger.info(f"Extracting SQL query: {attachment.query}")
+            # Check if attachment.query is a GenieQueryAttachment object
+            if hasattr(attachment.query, 'query'):
+                # Extract the actual SQL string from the GenieQueryAttachment
+                sql_string = attachment.query.query
+                logger.info(f"Extracted SQL string: {sql_string}")
+                response_data["sql_query"] = sql_string
+            else:
+                # It's already a string
+                response_data["sql_query"] = attachment.query
+        
         if not query_result:
             logger.warning("No query result to extract from")
             return
@@ -260,25 +273,16 @@ class DatabricksGenieClient:
         else:
             logger.warning("No data array found in result")
         
-        # Extract column names
+        # Extract column names from statement_response.result.manifest
         if hasattr(result_data, 'manifest') and result_data.manifest:
             if hasattr(result_data.manifest, 'schema') and result_data.manifest.schema:
                 columns = [col.name for col in result_data.manifest.schema.columns]
                 logger.info(f"Found columns: {columns}")
                 response_data["result"]["columns"] = columns
-        
-        # Extract SQL query
-        if hasattr(attachment, 'query') and attachment.query:
-            logger.info(f"Extracting SQL query: {attachment.query}")
-            # Check if attachment.query is a GenieQueryAttachment object
-            if hasattr(attachment.query, 'query'):
-                # Extract the actual SQL string from the GenieQueryAttachment
-                sql_string = attachment.query.query
-                logger.info(f"Extracted SQL string: {sql_string}")
-                response_data["sql_query"] = sql_string
             else:
-                # It's already a string
-                response_data["sql_query"] = attachment.query
+                logger.warning("No schema found in result manifest")
+        else:
+            logger.warning("No manifest found in result")
         
         # Update summary
         if response_data["result"]["data"]:
@@ -384,6 +388,42 @@ class DatabricksGenieClient:
             logger.error(f"Error getting available tables: {e}")
             raise
     
+    def is_numeric_value(self, value) -> bool:
+        """Check if a value represents a number (including scientific notation)"""
+        try:
+            float(str(value))
+            return True
+        except (ValueError, TypeError):
+            return False
+
+    def format_number_for_display(self, value) -> str:
+        """Format numbers for better display (no scientific notation)"""
+        try:
+            # Convert to string first to handle all input types
+            str_value = str(value).strip()
+            
+            # Try to convert to float (this handles scientific notation)
+            num = float(str_value)
+            
+            # Check if the number is effectively an integer
+            is_integer = num == int(num)
+            
+            # Handle very large numbers - format as clean numbers with commas
+            if abs(num) >= 1_000_000_000:  # Billions
+                return f"{num:,.0f}" if is_integer else f"{num:,.2f}"
+            elif abs(num) >= 1_000_000:  # Millions
+                return f"{num:,.0f}" if is_integer else f"{num:,.2f}"
+            elif abs(num) >= 1_000:  # Thousands
+                return f"{num:,.0f}" if is_integer else f"{num:,.2f}"
+            elif abs(num) >= 1:
+                return f"{num:.0f}" if is_integer else f"{num:.2f}"
+            else:
+                # Small decimals - always show decimals since they're meaningful
+                return f"{num:.4f}"
+        except (ValueError, TypeError):
+            # If conversion fails, return original value as string
+            return str(value)
+
     def format_genie_response(self, response: Dict[str, Any]) -> str:
         """
         Format the Genie response into a readable message
@@ -457,11 +497,18 @@ class DatabricksGenieClient:
                                 for col in available_columns:
                                     col_index = columns.index(col)
                                     if col_index < len(row):
-                                        value = str(row[col_index])
+                                        value = row[col_index]
+                                        
+                                        # Format numbers properly to avoid scientific notation
+                                        if self.is_numeric_value(value):
+                                            formatted_value = self.format_number_for_display(value)
+                                        else:
+                                            formatted_value = str(value)
+                                        
                                         # Truncate long values
-                                        if len(value) > 30:
-                                            value = value[:27] + "..."
-                                        row_values.append(value)
+                                        if len(formatted_value) > 30:
+                                            formatted_value = formatted_value[:27] + "..."
+                                        row_values.append(formatted_value)
                                     else:
                                         row_values.append("")
                                 formatted_response += f"`{' | '.join(row_values)}`\n"
@@ -476,10 +523,18 @@ class DatabricksGenieClient:
                                 row_values = []
                                 for i in range(max_cols):
                                     if i < len(row):
-                                        value = str(row[i])
-                                        if len(value) > 30:
-                                            value = value[:27] + "..."
-                                        row_values.append(value)
+                                        value = row[i]
+                                        
+                                        # Format numbers properly to avoid scientific notation
+                                        if self.is_numeric_value(value):
+                                            formatted_value = self.format_number_for_display(value)
+                                        else:
+                                            formatted_value = str(value)
+                                        
+                                        # Truncate long values
+                                        if len(formatted_value) > 30:
+                                            formatted_value = formatted_value[:27] + "..."
+                                        row_values.append(formatted_value)
                                     else:
                                         row_values.append("")
                                 formatted_response += f"`{' | '.join(row_values)}`\n"
@@ -494,10 +549,23 @@ class DatabricksGenieClient:
                         for i, row in enumerate(data, 1):
                             formatted_response += f"**Row {i}:**\n"
                             for key, value in row.items():
-                                formatted_response += f"  {key}: `{str(value)}`\n"
+                                # Format numbers properly
+                                if self.is_numeric_value(value):
+                                    formatted_value = self.format_number_for_display(value)
+                                else:
+                                    formatted_value = str(value)
+                                formatted_response += f"  {key}: `{formatted_value}`\n"
                     else:
                         formatted_response += f"Found {len(data)} rows of data\n"
-                        formatted_response += f"Sample row: `{str(list(data[0].items())[:3])}`...\n"
+                        # Format sample values too
+                        sample_items = []
+                        for key, value in list(data[0].items())[:3]:
+                            if self.is_numeric_value(value):
+                                formatted_value = self.format_number_for_display(value)
+                            else:
+                                formatted_value = str(value)
+                            sample_items.append(f"{key}: {formatted_value}")
+                        formatted_response += f"Sample row: `{', '.join(sample_items)}`...\n"
                 
                 # Add summary
                 summary = result.get("summary", "")

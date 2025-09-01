@@ -5,7 +5,7 @@ DOCKER_IMAGE_NAME = ucm-tfm-lakehouse
 DOCKER_TAG = latest
 DOCKERFILE_PATH = Dockerfile
 DOCKER_CONTEXT = .
-TEST_PATHS = tests/ test/
+TEST_PATHS = tests/
 STREAMLIT_PORT ?= 8501
 
 # Default target
@@ -20,15 +20,15 @@ help: ## Show this help message
 
 # Test command
 .PHONY: test
-test: ## Run all tests using pytest
+test: ## Run all tests using pytest with uv
 	@echo "Running tests..."
-	pytest $(TEST_PATHS) -v --tb=short
+	uv run pytest $(TEST_PATHS) -v --tb=short
 
 # Test with coverage
 .PHONY: test-coverage
-test-coverage: ## Run tests with coverage report
+test-coverage: ## Run tests with coverage report using uv
 	@echo "Running tests with coverage..."
-	pytest $(TEST_PATHS) -v --tb=short --cov=src --cov-report=html --cov-report=term
+	uv run pytest $(TEST_PATHS) -v --tb=short --cov=src --cov-report=html --cov-report=term
 
 # Build Docker image
 .PHONY: build
