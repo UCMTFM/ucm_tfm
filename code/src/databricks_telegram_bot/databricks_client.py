@@ -260,12 +260,16 @@ class DatabricksGenieClient:
         else:
             logger.warning("No data array found in result")
         
-        # Extract column names
-        if hasattr(result_data, 'manifest') and result_data.manifest:
-            if hasattr(result_data.manifest, 'schema') and result_data.manifest.schema:
-                columns = [col.name for col in result_data.manifest.schema.columns]
+        # Extract column names from statement_response.manifest
+        if hasattr(statement_response, 'manifest') and statement_response.manifest:
+            if hasattr(statement_response.manifest, 'schema') and statement_response.manifest.schema:
+                columns = [col.name for col in statement_response.manifest.schema.columns]
                 logger.info(f"Found columns: {columns}")
                 response_data["result"]["columns"] = columns
+            else:
+                logger.warning("No schema found in statement response manifest")
+        else:
+            logger.warning("No manifest found in statement response")
         
         # Extract SQL query
         if hasattr(attachment, 'query') and attachment.query:
