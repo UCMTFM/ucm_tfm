@@ -43,8 +43,3 @@ variable "databricks_workspace_id" {
   type        = string
   description = "Resource ID of the Databricks workspace"
 }
-
-variable "databricks_cluster_user" {
-  type        = string
-  description = "User name for the single user of the Databricks cluster"
-}
