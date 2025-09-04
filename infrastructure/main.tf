@@ -121,6 +121,7 @@ module "databricks_workspace" {
   resource_group_name = module.databricks_resource_group.name
   location            = var.databricks_location # module.resource_group.location
   tags                = local.tags
+  sku                 = "premium"
 }
 
 # Databricks Access Connector
