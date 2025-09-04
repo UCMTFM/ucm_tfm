@@ -17,7 +17,8 @@
         "table": "facturas"
     },
     "imputations": {
-        "Saldo": 0
+        "Saldo": 0,
+        "IdRuta": "No asignado"
     },
     "last_ingest_processed_date": "2025-08-08 13:19:20.077"
 }
