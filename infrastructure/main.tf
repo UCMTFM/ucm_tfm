@@ -5,7 +5,6 @@ locals {
       project = var.project
     }
   )
-  workspace_ready  = can(module.databricks_workspace.id)
   admin_member_ids = [for _, u in data.azuread_user.members : u.object_id]
 }
 
@@ -122,6 +121,7 @@ module "databricks_workspace" {
   resource_group_name = module.databricks_resource_group.name
   location            = var.databricks_location # module.resource_group.location
   tags                = local.tags
+  sku                 = "premium"
 }
 
 # Databricks Access Connector
@@ -162,7 +162,6 @@ module "unity_catalog" {
     databricks = databricks.databricks_uc
   }
 
-  count                          = local.workspace_ready ? 1 : 0
   depends_on                     = [module.databricks_workspace]
   source                         = "./modules/unity_catalog"
   databricks_workspace_id        = module.databricks_workspace.id
@@ -188,7 +187,6 @@ module "single_node_compute" {
   prefix                  = var.project
   idle_minutes            = 15
   databricks_workspace_id = module.databricks_workspace.id
-  databricks_cluster_user = var.databricks_cluster_user
   git_repo_https_url      = var.git_repo_https_url
 }
 

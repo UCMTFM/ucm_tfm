@@ -41,12 +41,3 @@ resource "databricks_repo" "databricks_notebooks" {
     patterns = ["databricks_notebooks/"]
   }
 }
-
-# resource "databricks_cluster" "single_node" {
-#   cluster_name            = "Single Node"
-#   spark_version           = data.databricks_spark_version.latest_lts.id
-#   node_type_id            = data.databricks_node_type.smallest.id
-#   autotermination_minutes = 20
-#   is_single_node          = true
-#   kind                    = "CLASSIC_PREVIEW"
-# }
