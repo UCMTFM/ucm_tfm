@@ -41,4 +41,5 @@ dev = [
     "databricks-connect==15.4.4",
     "grpcio>=1.74.0",
     "grpcio-status==1.59.3",
+    "pytest-cov>=6.2.1",
 ]
