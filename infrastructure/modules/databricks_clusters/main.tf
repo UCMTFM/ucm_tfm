@@ -13,7 +13,6 @@ data "databricks_node_type" "smallest" {
 
 data "databricks_spark_version" "latest_lts" {
   long_term_support = true
-  ml                = true
 }
 
 resource "databricks_cluster" "shared_autoscaling" {

@@ -1,0 +1,11 @@
+# Required connection configs for Kafka producer, consumer, and admin
+bootstrap.servers=pkc-921jm.us-east-2.aws.confluent.cloud:9092
+security.protocol=SASL_SSL
+sasl.mechanisms=PLAIN
+sasl.username=RWOGF3E6G6ABHI6T
+sasl.password=cflt4GhepgwGvJUW6xqD1hlbuXmQzWeqF1dGJbeTifa/MHynlkUPHlQBdBgTXeWw
+
+# Best practice for higher availability in librdkafka clients prior to 1.7
+session.timeout.ms=45000
+
+client.id=ccloud-python-client-0b379aec-0bd6-47e9-b394-af81f30f8d29
