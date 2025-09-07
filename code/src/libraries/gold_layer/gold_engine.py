@@ -49,7 +49,7 @@ class GoldEngine:
 
 if __name__ == "__main__":
     dataset = "sales_by_route"
-    config_path = f"./config_files/gold/{dataset}_config.json"
-    config_path_abs = os.path.abspath(config_path)
-    engine = GoldEngine(dataset, config_path_abs)
+    config_path = f"dbfs:/FileStore/config/gold/{dataset}_config.json"
+    # config_path_abs = os.path.abspath(config_path)
+    engine = GoldEngine(dataset, config_path)
     engine.process()
