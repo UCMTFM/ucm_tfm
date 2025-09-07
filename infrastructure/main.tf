@@ -188,6 +188,7 @@ module "single_node_compute" {
   idle_minutes            = 15
   databricks_workspace_id = module.databricks_workspace.id
   git_repo_https_url      = var.git_repo_https_url
+  spark_version           = "15.4.x-scala2.12" 
 }
 
 # Azure k8s Cluster
