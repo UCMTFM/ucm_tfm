@@ -1,4 +1,4 @@
-project                 = "tfmappinnova"
+project                 = "ucmappinnova"
 location                = "North Europe"
 databricks_location     = "West Europe"
 databricks_cluster_user = "camilo.cossio111@gmail.com"
