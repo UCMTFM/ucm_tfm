@@ -18,7 +18,7 @@
         },
         "key_format": "string",
         "value_format": "json",
-        "json_schema": "FILL"
+        "json_schema": "lat double, lon double, repartidor string, ts timestamp"
     },
     "sink": {
         "format": "delta",
