@@ -1,7 +1,7 @@
 {
   "lakehouse_storage_account_name": "staucmappinnovalakehouse",
   "lakehouse_container_name": "lakehouse",
-  "secret_scope": "akvucmappinnova",
+  "secret_scope": "akv-ucmappinnova",
   "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
   "landing_secret_key_name": "landing-stg-account-access-key",
   "landing_storage_account_name": "staucmappinnovalanding",
