@@ -49,8 +49,8 @@ class Engine:
 
 
 if __name__ == "__main__":
-    dataset = "facturas"
-    workload = "batch"
+    dataset = "ruta_real_time"
+    workload = "streaming"
     config_dbfs_path = f"dbfs:/FileStore/config/bronze/{dataset}_config.json"
     engine = Engine(workload, config_dbfs_path)
     engine.ingest()

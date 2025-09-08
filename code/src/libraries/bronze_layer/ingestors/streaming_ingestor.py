@@ -28,8 +28,7 @@ class StreamingIngestor(BaseIngestor):
         """
         super().__init__(config_path)
 
-    @staticmethod
-    def read_kafka_config(config_path: str):
+    def read_kafka_config(self):
         """
         Read Kafka and Schema Registry configurations from a .properties-style config file.
 
@@ -41,13 +40,16 @@ class StreamingIngestor(BaseIngestor):
                 - kafka_spark_opts (dict): Options for Spark Kafka stream source.
                 - schema_registry_config (dict): Configuration for Confluent Schema Registry.
         """
+        cfg_str = self.dbutils.fs.head(self.config.get("kafka_config_path"), 10_000_000)
+
         config = {}
-        with open(config_path) as fh:
-            for line in fh:
-                line = line.strip()
-                if len(line) != 0 and line[0] != "#":
-                    parameter, value = line.strip().split("=", 1)
-                    config[parameter] = value.strip()
+        for line in cfg_str.splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                key, value = line.split("=", 1)
+                config[key.strip()] = value.strip()
+
+        # self.config = config
 
         username = config.get("sasl.username")
         password = config.get("sasl.password")
@@ -76,7 +78,7 @@ class StreamingIngestor(BaseIngestor):
         format = source.get("format")
         json_schema = source.get("json_schema")
 
-        opts = StreamingIngestor.read_kafka_config(self.config.get("kafka_config_path"))
+        opts = self.read_kafka_config()
         opts.update(source.get("options"))
 
         df = self.spark.readStream.format(format).options(**opts).load()
