@@ -6,6 +6,7 @@
     "datasource": "detalle_facturas",
     "dataset": "sales_by_route",
     "catalog": "adbucmappinnovalakehouse",
+    "data_since": 2022,
     "sources": {
         "facturas_schema": "silver",
         "facturas_table": "facturas",

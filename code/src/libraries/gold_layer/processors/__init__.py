@@ -1,4 +1,4 @@
-from .sales_by_route_model import SalesByRouteProcessor
+from .sales_by_route import SalesByRouteProcessor
 
 __all__ = [
     "SalesByRouteProcessor",
