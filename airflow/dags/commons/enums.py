@@ -6,8 +6,8 @@ class AirflowConnections(StrEnum):
 
 
 class DatabricksClusters(StrEnum):
-    SERVERLESS_SQL_WH = "/sql/1.0/warehouses/8ac654e00eed9165"
-    SHARED_CLUSTER = "sql/protocolv1/o/710379830264717/0811-190647-smbozjci"
+    SERVERLESS_SQL_WH = "/sql/1.0/warehouses/03fd33f4766cd79e"
+    SHARED_CLUSTER = "sql/protocolv1/o/273238931413943/0907-164510-tyg0t6hc"
 
 
 class BronzeDatasets(StrEnum):
