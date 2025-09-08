@@ -47,6 +47,33 @@ resource "databricks_grants" "lakehouse_layers_grants" {
   }
 }
 
+resource "databricks_grants" "catalog_grants" {
+  for_each = toset(var.users)
+
+  catalog = "adbucmappinnovalakehouse"
+
+  grant {
+    principal  = each.value
+    privileges = ["USE_CATALOG"]
+  }
+}
+
+resource "databricks_grants" "schema_grants" {
+  for_each = toset(var.users)
+
+  schema = "adbucmappinnovalakehouse.silver"
+
+  grant {
+    principal  = each.value
+    privileges = ["USE_SCHEMA", "CREATE", "MODIFY", "DELETE"]
+  }
+
+  grant {
+    principal  = each.value
+    privileges = ["SELECT"]
+  }
+}
+
 resource "databricks_secret_scope" "keyvault_scope" {
   name = "akv-${var.prefix}"
 

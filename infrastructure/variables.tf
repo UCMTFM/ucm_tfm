@@ -50,3 +50,7 @@ variable "git_repo_https_url" {
   type        = string
   description = "Git repository URL for the project"
 }
+
+variable "users" {
+  type    = list(string)
+}
