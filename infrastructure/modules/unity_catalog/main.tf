@@ -56,54 +56,6 @@ resource "databricks_grants" "catalog_grants" {
   }
 }
 
-resource "databricks_grants" "schema_grants_bronze" {
-  for_each = toset(var.users)
-
-  schema = "adb${var.prefix}lakehouse.bronze"
-
-  grant {
-    principal  = "account users"
-    privileges = ["USE_SCHEMA", "CREATE", "MODIFY"]
-  }
-
-  grant {
-    principal  = "account users"
-    privileges = ["SELECT"]
-  }
-}
-
-resource "databricks_grants" "schema_grants_silver" {
-  for_each = toset(var.users)
-
-  schema = "adb${var.prefix}lakehouse.silver"
-
-  grant {
-    principal  = "account users"
-    privileges = ["USE_SCHEMA", "CREATE", "MODIFY"]
-  }
-
-  grant {
-    principal  = "account users"
-    privileges = ["SELECT"]
-  }
-}
-
-resource "databricks_grants" "schema_grants_gold" {
-  for_each = toset(var.users)
-
-  schema = "adb${var.prefix}lakehouse.gold"
-
-  grant {
-    principal  = "account users"
-    privileges = ["USE_SCHEMA", "CREATE", "MODIFY"]
-  }
-
-  grant {
-    principal  = "account users"
-    privileges = ["SELECT"]
-  }
-}
-
 resource "databricks_secret_scope" "keyvault_scope" {
   name = "akv-${var.prefix}"
 

@@ -9,7 +9,7 @@
     "datasource": "applications",
     "dataset": "delivery_route",
     "catalog": "adbucmappinnovalakehouse",
-    "kafka_config_path": "/dbfs/FileStore/config/confluent_kafka/client_properties",
+    "kafka_config_path": "dbfs:/FileStore/config/confluent_kafka/client_properties",
     "source": {
         "format" : "kafka",
         "options" : {
