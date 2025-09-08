@@ -48,12 +48,10 @@ resource "databricks_grants" "lakehouse_layers_grants" {
 }
 
 resource "databricks_grants" "catalog_grants" {
-  for_each = toset(var.users)
-
   catalog = "adb${var.prefix}lakehouse"
 
   grant {
-    principal  = each.value
+    principal  = "account users"
     privileges = ["USE_CATALOG"]
   }
 }
@@ -64,12 +62,12 @@ resource "databricks_grants" "schema_grants_bronze" {
   schema = "adb${var.prefix}lakehouse.bronze"
 
   grant {
-    principal  = each.value
+    principal  = "account users"
     privileges = ["USE_SCHEMA", "CREATE", "MODIFY"]
   }
 
   grant {
-    principal  = each.value
+    principal  = "account users"
     privileges = ["SELECT"]
   }
 }
@@ -80,12 +78,12 @@ resource "databricks_grants" "schema_grants_silver" {
   schema = "adb${var.prefix}lakehouse.silver"
 
   grant {
-    principal  = each.value
+    principal  = "account users"
     privileges = ["USE_SCHEMA", "CREATE", "MODIFY"]
   }
 
   grant {
-    principal  = each.value
+    principal  = "account users"
     privileges = ["SELECT"]
   }
 }
@@ -96,12 +94,12 @@ resource "databricks_grants" "schema_grants_gold" {
   schema = "adb${var.prefix}lakehouse.gold"
 
   grant {
-    principal  = each.value
+    principal  = "account users"
     privileges = ["USE_SCHEMA", "CREATE", "MODIFY"]
   }
 
   grant {
-    principal  = each.value
+    principal  = "account users"
     privileges = ["SELECT"]
   }
 }
