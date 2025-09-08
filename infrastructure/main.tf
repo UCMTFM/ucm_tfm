@@ -173,6 +173,7 @@ module "unity_catalog" {
   admin_group_name               = azuread_group.admins.display_name
   key_vault_id                   = module.key_vault.key_vault_id
   key_vault_uri                  = module.key_vault.key_vault_uri
+  users                          = var.users
 }
 
 # Databricks Clusters 

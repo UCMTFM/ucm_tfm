@@ -5,3 +5,4 @@ databricks_cluster_user = "camilo.cossio111@gmail.com"
 lakehouse_directories   = ["bronze", "silver", "gold"]
 landing_directories     = ["internal_system/facturas", "internal_system/detalle_facturas"]
 git_repo_https_url      = "https://github.com/UCMTFM/ucm_tfm.git"
+users = [ "camilo.cossio111@gmail.com", "jonathanpinzon05@gmail.com", "mauriciobolivar015@gmail.com", "da.azure01@gmail.com" ]

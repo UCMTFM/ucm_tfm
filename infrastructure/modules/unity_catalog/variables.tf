@@ -34,3 +34,7 @@ variable "key_vault_id" {
 variable "key_vault_uri" {
   type = string
 }
+
+variable "users" {
+  type    = list(string)
+}
