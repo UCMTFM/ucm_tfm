@@ -46,8 +46,7 @@ class SalesByRouteProcessor(BaseProcessor):
         )
         return df_agg_model
 
-    @staticmethod
-    def add_ohe_vars(df_agg_model: DF, categorical_cols: list[str]) -> DF:
+    def add_ohe_vars(self, df_agg_model: DF, categorical_cols: list[str]) -> DF:
         indexers = [
             StringIndexer(inputCol=col, outputCol=col + "_idx", handleInvalid="keep")
             for col in categorical_cols
@@ -57,10 +56,12 @@ class SalesByRouteProcessor(BaseProcessor):
         ]
         pipeline = Pipeline(stages=indexers + encoders)
         model = pipeline.fit(df_agg_model)
+
+        year_since = self.config.get("data_since")
         df_encoded = model.transform(df_agg_model).filter(
             (F.col("IdRuta").isNotNull())
             & (F.col("CantidadTotalPrevia").isNotNull())
-            & (F.col("Anio") >= 2022)
+            & (F.col("Anio") >= year_since)
         )
         return df_encoded
 
@@ -74,5 +75,5 @@ class SalesByRouteProcessor(BaseProcessor):
 
         df_agg_model = SalesByRouteProcessor.get_model_vars(df_fact, df_det_fact).cache()
         categorical_cols = ["IdRuta", "IdProducto", "NombreProducto", "Anio", "Mes", "Dia"]
-        df_encoded = SalesByRouteProcessor.add_ohe_vars(df_agg_model, categorical_cols)
+        df_encoded = self.add_ohe_vars(df_agg_model, categorical_cols)
         self.write_delta_table(df_encoded)
