@@ -1,11 +1,11 @@
 {
-    "lakehouse_storage_account_name": "statfmappinnovalakehouse",
+    "lakehouse_storage_account_name": "staucmappinnovalakehouse",
     "lakehouse_container_name": "lakehouse",
-    "secret_scope": "akv-tfmappinnova",
+    "secret_scope": "akvucmappinnova",
     "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
     "datasource": "detalle_facturas",
     "dataset": "sales_by_route",
-    "catalog": "adbtfmappinnovalakehouse",
+    "catalog": "adbucmappinnovalakehouse",
     "sources": {
         "facturas_schema": "silver",
         "facturas_table": "facturas",

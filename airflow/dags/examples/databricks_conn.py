@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import pendulum
-
 from airflow.models.dag import DAG
 from airflow.providers.databricks.operators.databricks_sql import DatabricksSqlOperator
-from commons.enums import DatabricksClusters, AirflowConnections
+from commons.enums import AirflowConnections, DatabricksClusters
 
 with DAG(
     dag_id="databricks_sql_warehouse_example",
@@ -16,7 +15,7 @@ with DAG(
         task_id="show_tables_serverless",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
         sql="SHOW TABLES",
-        catalog="adbtfmappinnovalakehouse",
+        catalog="adbucmappinnovalakehouse",
         schema="default",
         http_path=DatabricksClusters.SERVERLESS_SQL_WH,
     )
@@ -25,7 +24,7 @@ with DAG(
         task_id="show_tables_shared_cluster",
         databricks_conn_id=AirflowConnections.DATABRICKS_CONN,
         sql="SHOW TABLES",
-        catalog="adbtfmappinnovalakehouse",
+        catalog="adbucmappinnovalakehouse",
         schema="default",
         http_path=DatabricksClusters.SHARED_CLUSTER,
     )
