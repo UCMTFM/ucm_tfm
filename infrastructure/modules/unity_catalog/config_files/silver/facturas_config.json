@@ -18,7 +18,7 @@
     },
     "imputations": {
         "Saldo": 0,
-        "CodigoRuta": "No asignado"
+        "CodigoRuta": "NoAsignado"
     },
     "last_ingest_processed_date": "2025-08-08 13:19:20.077"
 }
