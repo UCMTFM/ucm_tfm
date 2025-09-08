@@ -13,7 +13,7 @@
     "source": {
         "format" : "kafka",
         "options" : {
-            "subscribe" : "Repartidores",
+            "subscribe" : "RutasRealTime",
             "startingOffsets" : "earliest"
         },
         "key_format": "string",
