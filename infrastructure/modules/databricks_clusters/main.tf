@@ -32,6 +32,20 @@ resource "databricks_cluster" "shared_autoscaling" {
   }
 }
 
+resource "databricks_cluster" "ml_unrestricted" {
+  cluster_name            = "${var.prefix}_ml_cluster"
+  spark_version           = var.spark_version_ml
+  node_type_id            = var.node_type_id != null ? var.node_type_id : data.databricks_node_type.smallest.id
+  autotermination_minutes = var.idle_minutes
+  data_security_mode      = "SINGLE_USER"
+  single_user_name        = var.single_user_name 
+
+  autoscale {
+    min_workers = var.min_workers
+    max_workers = var.max_workers
+  }
+}
+
 resource "databricks_repo" "databricks_notebooks" {
   url    = var.git_repo_https_url
   branch = "main"
