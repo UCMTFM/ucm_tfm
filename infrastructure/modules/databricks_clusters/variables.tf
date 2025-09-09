@@ -57,3 +57,7 @@ variable "single_user_name" {
   default     = null
   nullable    = true
 }
+
+variable "users" {
+  type    = list(string)
+}
