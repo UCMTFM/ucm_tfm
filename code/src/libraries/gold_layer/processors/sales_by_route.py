@@ -75,5 +75,7 @@ class SalesByRouteProcessor(BaseProcessor):
 
         df_agg_model = SalesByRouteProcessor.get_model_vars(df_fact, df_det_fact).cache()
         categorical_cols = ["IdRuta", "IdProducto", "NombreProducto", "Anio", "Mes", "Dia"]
-        df_encoded = self.add_ohe_vars(df_agg_model, categorical_cols)
+        df_encoded = self.add_ohe_vars(df_agg_model, categorical_cols).withColumnRenamed(
+            "prediction", "Dia_ohe"
+        )
         self.write_delta_table(df_encoded)
