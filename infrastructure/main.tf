@@ -192,6 +192,7 @@ module "single_node_compute" {
   spark_version           = "15.4.x-scala2.12"
   spark_version_ml        = "15.4.x-cpu-ml-scala2.12"
   single_user_name        = var.databricks_cluster_user
+  users                   = var.users
 }
 
 # Azure k8s Cluster

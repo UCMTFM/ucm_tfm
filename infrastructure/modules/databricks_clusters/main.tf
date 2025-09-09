@@ -22,6 +22,10 @@ resource "databricks_cluster" "shared_autoscaling" {
   autotermination_minutes = var.idle_minutes
   data_security_mode      = "USER_ISOLATION"
 
+  spark_env_vars = {
+    "USERS" = join(",", var.users)
+  }
+
   autoscale {
     min_workers = var.min_workers
     max_workers = var.max_workers
@@ -39,6 +43,10 @@ resource "databricks_cluster" "ml_unrestricted" {
   autotermination_minutes = var.idle_minutes
   data_security_mode      = "SINGLE_USER"
   single_user_name        = var.single_user_name 
+
+  spark_env_vars = {
+    "USERS" = join(",", var.users)
+  }
 
   autoscale {
     min_workers = var.min_workers
