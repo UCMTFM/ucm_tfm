@@ -82,6 +82,15 @@ class BaseProcessor(ABC):
         schema = "silver"
         return self.read_table(schema, table_name)
 
+    def grant_permissions(self, schema: str, catalog: str) -> None:
+        users = os.environ.get("USERS").split(",")
+        for user in users:
+            try:
+                self.spark.sql(f"GRANT USE CATALOG ON CATALOG {catalog} TO `{user}`;")
+                self.spark.sql(f"GRANT USE SCHEMA ON SCHEMA {catalog}.{schema} TO `{user}`;")
+            except Exception:
+                pass
+
     def write_delta_table(self, df: DF) -> None:
         """
         Write the processed DataFrame to the silver Delta table.
@@ -107,6 +116,8 @@ class BaseProcessor(ABC):
         self.spark.sql(f"USE CATALOG {catalog}")
 
         self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS gold MANAGED LOCATION '{gold_path}'")
+
+        self.grant_permissions("gold", catalog)
 
         (
             df.write.format("delta")

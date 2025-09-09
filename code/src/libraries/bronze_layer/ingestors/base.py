@@ -67,6 +67,15 @@ class BaseIngestor(ABC):
             f"fs.azure.account.key.{lnd_account_name}.dfs.core.windows.net", lnd_account_key
         )
 
+    def grant_permissions(self, schema: str, catalog: str) -> None:
+        users = os.environ.get("USERS").split(",")
+        for user in users:
+            try:
+                self.spark.sql(f"GRANT USE CATALOG ON CATALOG {catalog} TO `{user}`;")
+                self.spark.sql(f"GRANT USE SCHEMA ON SCHEMA {catalog}.{schema} TO `{user}`;")
+            except Exception:
+                pass
+
     def create_table(self, dataset: str, location: str) -> None:
         """
         Creates a Delta table in the 'bronze' schema if it does not already exist.
@@ -80,6 +89,7 @@ class BaseIngestor(ABC):
         if not self.spark.catalog.tableExists(f"bronze.{dataset}"):
             logger.info(f"Creating external table bronze.{dataset}")
             self.spark.sql("CREATE SCHEMA IF NOT EXISTS bronze")
+            self.grant_permissions("bronze", catalog)
 
             self.spark.sql(
                 f"""
