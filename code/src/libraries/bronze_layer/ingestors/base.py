@@ -15,10 +15,22 @@ else:
 
 class BaseIngestor(ABC):
     """
-    Abstract base class for implementing data ingestion workflows using PySpark.
+    Abstract base class for implementing data ingestion workflows using PySpark
+    in a Databricks + Azure Data Lake environment.
+
+    This class handles:
+      - Loading configuration from a JSON file stored in DBFS.
+      - Establishing authenticated connections to Azure Data Lake Storage
+        using Databricks secrets.
+      - Providing helper methods to grant schema/table permissions and create
+        Delta tables.
+
+    Subclasses must implement the abstract :meth:`ingest` method to define the
+    ingestion logic.
 
     Attributes:
         spark (SparkSession): The active Spark session.
+        dbutils (DBUtils): Databricks utilities object for interacting with DBFS and secrets.
         config (dict): Configuration loaded from the provided JSON file.
     """
 
@@ -27,7 +39,8 @@ class BaseIngestor(ABC):
         Initialize the BaseIngestor instance.
 
         Args:
-            config_path (str): Path to the JSON configuration file.
+            config_path (str): Path to the JSON configuration file in DBFS.
+                               Example: "dbfs:/mnt/config/ingestion_config.json"
         """
         self.spark = SparkSession.builder.getOrCreate()
         self.dbutils = DBUtils(self.spark)
@@ -46,9 +59,13 @@ class BaseIngestor(ABC):
 
     def connect_to_storage_accounts(self):
         """
-        Connects to an Azure Data Lake Storage account using credentials stored
-        in Databricks secrets. Sets the necessary Spark configuration to allow
-        access to the storage account.
+        Establish authenticated connections to Azure Data Lake Storage accounts
+        defined in the configuration file.
+
+        Retrieves account keys from Databricks secret scopes and sets Spark
+        configuration values to allow access to:
+          - Lakehouse storage account.
+          - Landing storage account.
         """
         secret_scope = self.config.get("secret_scope")
 
@@ -67,19 +84,47 @@ class BaseIngestor(ABC):
             f"fs.azure.account.key.{lnd_account_name}.dfs.core.windows.net", lnd_account_key
         )
 
-    def create_table(self, dataset: str, location: str) -> None:
+    def grant_permissions(self, schema: str, catalog: str) -> None:
         """
-        Creates a Delta table in the 'bronze' schema if it does not already exist.
+        Grants standard permissions on a given schema within a catalog to a
+        list of users defined in the environment variable ``USERS``.
+
+        Granted permissions:
+            - USE CATALOG
+            - USE SCHEMA
+            - SELECT
+            - CREATE
+            - MODIFY
 
         Args:
-            dataset (str): Name of the dataset.
-            location (str): The storage path (ADLS) where the Delta table is located.
+            schema (str): Name of the schema.
+            catalog (str): Name of the catalog.
+        """
+        users = os.environ.get("USERS").split(",")
+        for user in users:
+            try:
+                self.spark.sql(f"GRANT USE CATALOG ON CATALOG {catalog} TO `{user}`;")
+                self.spark.sql(f"GRANT USE SCHEMA ON SCHEMA {catalog}.{schema} TO `{user}`;")
+                self.spark.sql(f"GRANT SELECT ON SCHEMA {schema} TO `{user}`;")
+                self.spark.sql(f"GRANT CREATE ON SCHEMA {schema} TO `{user}`;")
+                self.spark.sql(f"GRANT MODIFY ON SCHEMA {schema} TO `{user}`;")
+            except Exception:
+                pass
+
+    def create_table(self, dataset: str, location: str) -> None:
+        """
+        Creates an external Delta table in the ``bronze`` schema if it does not already exist.
+
+        Args:
+            dataset (str): Name of the dataset/table (e.g., "sales_data").
+            location (str): Path to the dataset storage location in the Lakehouse
         """
         catalog = self.config.get("catalog", "hive_metastore")
         self.spark.sql(f"USE CATALOG {catalog}")
         if not self.spark.catalog.tableExists(f"bronze.{dataset}"):
             logger.info(f"Creating external table bronze.{dataset}")
             self.spark.sql("CREATE SCHEMA IF NOT EXISTS bronze")
+            self.grant_permissions("bronze", catalog)
 
             self.spark.sql(
                 f"""

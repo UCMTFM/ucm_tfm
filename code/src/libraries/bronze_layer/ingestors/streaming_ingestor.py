@@ -8,8 +8,7 @@ class StreamingIngestor(BaseIngestor):
     """
     Concrete implementation of BaseIngestor for streaming ingestion from Kafka.
 
-    This ingestor supports data encoded in Avro or JSON format, consumed from Kafka,
-    optionally using Confluent Schema Registry for Avro schema resolution.
+    This ingestor supports data encoded in JSON format, consumed from Kafka.
 
     The ingested data is enriched with metadata columns and written to a Delta Lake
     table in the bronze zone.
@@ -36,9 +35,7 @@ class StreamingIngestor(BaseIngestor):
             config_path (str): Path to the Kafka config file.
 
         Returns:
-            tuple:
-                - kafka_spark_opts (dict): Options for Spark Kafka stream source.
-                - schema_registry_config (dict): Configuration for Confluent Schema Registry.
+            kafka_spark_opts (dict): Options for Spark Kafka stream source.
         """
         cfg_str = self.dbutils.fs.head(self.config.get("kafka_config_path"), 10_000_000)
 
@@ -48,8 +45,6 @@ class StreamingIngestor(BaseIngestor):
             if line and not line.startswith("#"):
                 key, value = line.split("=", 1)
                 config[key.strip()] = value.strip()
-
-        # self.config = config
 
         username = config.get("sasl.username")
         password = config.get("sasl.password")
@@ -96,7 +91,6 @@ class StreamingIngestor(BaseIngestor):
     def ingest(self):
         """
         Perform the full ingestion process based on the configured value format:
-            - Chooses ingestion strategy (`avro_ingest` or `json_ingest`).
             - Reads from Kafka topic as a streaming DataFrame.
             - Enriches with ingestion metadata.
             - Writes to a Delta Lake table in the bronze layer.

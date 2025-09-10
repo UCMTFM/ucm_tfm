@@ -6,17 +6,38 @@ from .base import BaseProcessor
 
 
 class DetalleNotasCreditoProcessor(BaseProcessor):
+    """
+    Processor for handling credit note detail records (notas de crédito detalle)
+    from the Bronze layer to the Silver layer.
+
+    Workflow:
+        1. Reads raw Bronze data incrementally.
+        2. Applies imputations based on configuration.
+        3. Transforms fields to compute devolutions/rotations, discounts,
+           taxes, and totals.
+        4. Writes the transformed dataset to the Silver layer.
+        5. Updates processing metadata (last processed watermark).
+    """
 
     def __init__(self, config_path: str):
         """
-        Initialize the DetalleNotasCreditoProcessor.
+        Initialize the DetalleNotasCreditoProcessor instance.
 
         Args:
-            config_path (str): Path to the JSON configuration file.
+            config_path (str): Path to the JSON configuration file in DBFS.
         """
         super().__init__(config_path)
 
     def transformations(self, df: DF) -> DF:
+        """
+        Apply transformations to credit note detail data.
+
+        Args:
+            df (DF): Input DataFrame from Bronze layer after imputations.
+
+        Returns:
+            DF: Transformed DataFrame ready for Silver layer.
+        """
         df_transformed = (
             df.select(
                 "IdDetalle",
@@ -80,6 +101,20 @@ class DetalleNotasCreditoProcessor(BaseProcessor):
         return df_transformed
 
     def process(self):
+        """
+        Orchestrate the end-to-end processing pipeline for credit note details.
+
+        Steps:
+            1. Log start of processing with dataset name from config.
+            2. Read Bronze table incrementally using configured conditions.
+            3. Apply imputations and log the resulting row count.
+            4. Apply business transformations via `transformations`.
+            5. Write results to Silver Delta table.
+            6. Update last processed watermark for incremental loads.
+
+        Returns:
+            None
+        """
         logger.info(f"Starting processing of dataset {self.config.get('dataset')}")
         df = self.read_bronze_table()
         df_imputed = self.imputations(df)

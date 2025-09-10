@@ -6,17 +6,39 @@ from .base import BaseProcessor
 
 
 class NotasCreditoProcessor(BaseProcessor):
+    """
+    Processor for handling credit note records (notas de crédito) from the Bronze
+    layer to the Silver layer.
+
+    Workflow:
+        1. Reads raw credit notes from the Bronze layer.
+        2. Transforms fields (renames, enriches, derives dates and metadata).
+        3. Reads and aggregates detalle_notas_credito (credit note line items).
+        4. Classifies Type 2 credit notes based on business rules.
+        5. Joins main notas_credito data with detail data and type classification.
+        6. Writes the enriched dataset to the Silver layer.
+        7. Updates processing metadata (last processed watermark).
+    """
 
     def __init__(self, config_path: str):
         """
-        Initialize the DetalleFacturasProcessor.
+        Initialize the NotasCreditoProcessor.
 
         Args:
-            config_path (str): Path to the JSON configuration file.
+            config_path (str): Path to the JSON configuration file in DBFS.
         """
         super().__init__(config_path)
 
     def transformations(self, df: DF) -> DF:
+        """
+        Apply transformations to notas_credito data.
+
+        Args:
+            df (DF): Input DataFrame from the Bronze layer.
+
+        Returns:
+            DF: Transformed DataFrame ready for enrichment.
+        """
         logger.info("Starting transformations on facturas data")
         df_transformed = (
             df.select(
@@ -62,6 +84,12 @@ class NotasCreditoProcessor(BaseProcessor):
         return df_transformed
 
     def read_detail_data(self) -> DF:
+        """
+        Read and aggregate detalle_notas_credito data from the Silver layer.
+
+        Returns:
+            DF: Aggregated detalle_notas_credito DataFrame grouped by IdFactura.
+        """
         sources = self.config.get("sources")
         detalle_schema = sources.get("detalle_schema")
         detalle_table = sources.get("detalle_table")
@@ -80,6 +108,18 @@ class NotasCreditoProcessor(BaseProcessor):
         return df_details_grouped
 
     def get_type_2(self) -> DF:
+        """
+        Identify and classify Type 2 notas_credito records.
+
+        Business rule:
+            - A credit note is Type 2 if all invoice detail rows have:
+                Cantidad == Devolucion + Rotacion.
+            - Validates this condition by comparing aggregated totals at the
+              factura (invoice) level.
+
+        Returns:
+            DF: DataFrame with IdFactura classified as Type 2.
+        """
         logger.info("Classifying Type 2 NotasCredito dataset")
         sources = self.config.get("sources")
         detalle_schema = sources.get("detalle_facturas_schema")
@@ -126,6 +166,23 @@ class NotasCreditoProcessor(BaseProcessor):
 
     @staticmethod
     def add_detail_data(df: DF, df_details: DF, df_type_2: DF) -> DF:
+        """
+        Join notas_credito with aggregated detalle_notas_credito and classification results.
+
+        - Left join notas_credito with detalle_notas_credito aggregates.
+        - Inner join with Type 2 classification results.
+        - Derive Tipo column:
+            * If Tipo is null → assign default value 5.
+            * Else → preserve Tipo = 2.
+
+        Args:
+            df (DF): Transformed notas_credito DataFrame.
+            df_details (DF): Aggregated detalle_notas_credito DataFrame.
+            df_type_2 (DF): DataFrame of Type 2 classified notas_credito.
+
+        Returns:
+            DF: Joined and enriched DataFrame with Tipo classification.
+        """
         logger.info("Joining notas_credito with detalle_notas_credito data")
         df_joined_det = df.join(df_details, on="IdFactura", how="left")
         df_classified = df_joined_det.join(df_type_2, on="IdFactura", how="inner").withColumn(
@@ -134,6 +191,20 @@ class NotasCreditoProcessor(BaseProcessor):
         return df_classified
 
     def process(self):
+        """
+        Orchestrate the Bronze → Silver pipeline for notas_credito.
+
+        1. Read notas_credito from Bronze.
+        2. Read and aggregate detalle_notas_credito from Silver.
+        3. Transform main notas_credito fields.
+        4. Compute Type 2 classification.
+        5. Join notas_credito with detail data and classification.
+        6. Write enriched dataset to Silver Delta table.
+        7. Update last processed watermark for incremental loads.
+
+        Returns:
+            None
+        """
         logger.info(f"Starting processing of dataset {self.config.get('dataset')}")
         df_notas_credito = self.read_bronze_table()
         df_detail = self.read_detail_data()
