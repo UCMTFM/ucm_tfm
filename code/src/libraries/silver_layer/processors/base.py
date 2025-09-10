@@ -23,18 +23,21 @@ class BaseProcessor(ABC):
     Abstract base class for implementing data processing logic on Delta Lake tables
     using PySpark.
 
-    This class provides utility methods for:
-    - Reading data from a bronze table with optional incremental filtering
-    - Enriching and transforming data
-    - Writing processed data to a silver Delta table
-    - Maintaining metadata such as last processed timestamps
+    Responsibilities:
+      - Load configuration from DBFS (JSON).
+      - Connect Spark to Azure Data Lake Storage using Databricks secrets.
+      - Read source tables (with optional incremental filters).
+      - Perform imputations based on config.
+      - Write processed data to Delta (Silver/Gold) with schema management.
+      - Maintain metadata (e.g., last processed watermark).
 
-    Subclasses must implement the `process` method to define specific transformation logic.
+    Subclasses must implement :meth:`process` to define specific transformations.
 
     Attributes:
         spark (SparkSession): Active Spark session for processing data.
-        config (dict): Configuration dictionary loaded from a JSON file.
-        config_path (str): Path to the configuration file, used for updating metadata.
+        dbutils (DBUtils): Databricks utilities handle.
+        config (dict): Configuration dictionary loaded from JSON.
+        config_path (str): DBFS path to the configuration file (used for metadata updates).
     """
 
     def __init__(self, config_path: str):
@@ -42,7 +45,7 @@ class BaseProcessor(ABC):
         Initialize the processor and load the configuration.
 
         Args:
-            config_path (str): Path to the JSON config file.
+            config_path (str): Path to the JSON config file in DBFS.
         """
         self.spark = SparkSession.builder.getOrCreate()
         self.config_path = config_path
@@ -61,6 +64,16 @@ class BaseProcessor(ABC):
         pass
 
     def imputations(self, df: DF) -> DF:
+        """
+        Apply simple value imputations defined in config['imputations'].
+        Nulls in listed columns are replaced with the provided value.
+
+        Args:
+            df (DF): Input DataFrame.
+
+        Returns:
+            DF: DataFrame after imputations.
+        """
         logger.info("Starting imputations on data")
         imputation_config = self.config.get("imputations", {})
         for column, value in imputation_config.items():
@@ -85,10 +98,15 @@ class BaseProcessor(ABC):
 
     def read_table(self, schema: str, table: str, condition: Column = F.lit(True)) -> DF:
         """
-        Read data from the bronze table, optionally filtered by the last processed timestamp.
+        Read a table from the configured catalog and apply an optional filter condition.
+
+        Args:
+            schema (str): Schema name.
+            table (str): Table name.
+            condition (Column): Spark SQL Column expression used to filter rows.
 
         Returns:
-            DataFrame: The loaded data from the bronze layer.
+            DF: Loaded (and filtered) DataFrame.
         """
         catalog = self.config.get("catalog")
         self.spark.sql(f"USE CATALOG {catalog}")
@@ -105,10 +123,10 @@ class BaseProcessor(ABC):
 
     def get_condition(self, table_name: str) -> Column:
         """
-        Get the filter condition for the DataFrame.
+        Build an incremental filter condition based on config and dataset type.
 
         Returns:
-            Column: The filter condition based on the last processed date.
+            Column: Combined Spark filter expression.
         """
         last_ingest_processed = self.config.get("last_ingest_processed_date", "")
         dataset = self.config.get("dataset")
@@ -135,6 +153,13 @@ class BaseProcessor(ABC):
         return condition
 
     def read_bronze_table(self) -> DF:
+        """
+        Read the main Bronze table defined in config['sources'] with an
+        incremental filter derived from :meth:`get_condition`.
+
+        Returns:
+            DF: Filtered Bronze DataFrame.
+        """
         source_config = self.config.get("sources")
         schema = source_config.get("main_schema")
         table = source_config.get("main_table")
@@ -157,7 +182,7 @@ class BaseProcessor(ABC):
         """
         Write the processed DataFrame to the silver Delta table.
 
-        The table is partitioned by year, month, and day.
+        The table is partitioned by year.
 
         Args:
             df (DataFrame): Processed DataFrame to write.

@@ -6,17 +6,42 @@ from .base import BaseProcessor
 
 
 class FacturasProcessor(BaseProcessor):
+    """
+    Processor for handling invoice records (facturas) from the Bronze layer to the Silver layer.
+
+    Workflow:
+        1. Reads invoice data from the Bronze layer.
+        2. Applies imputations and filters invalid records.
+        3. Transforms columns (renames, derives fields such as date parts, prefixes, etc.).
+        4. Reads and aggregates detalle_facturas (invoice line items) from the Silver layer.
+        5. Joins aggregated detail data with the main invoice dataset.
+        6. Writes the enriched dataset to the Silver layer.
+        7. Updates processing metadata (last processed watermark).
+
+    Inherits from:
+        BaseProcessor: Provides utilities for reading/writing Delta tables,
+        managing incremental loads, imputations, and metadata updates.
+    """
 
     def __init__(self, config_path: str):
         """
-        Initialize the DetalleFacturasProcessor.
+        Initialize the FacturasProcessor.
 
         Args:
-            config_path (str): Path to the JSON configuration file.
+            config_path (str): Path to the JSON configuration file in DBFS.
         """
         super().__init__(config_path)
 
     def imputations(self, df: DF) -> DF:
+        """
+        Apply imputations and filter invalid facturas records.
+
+        Args:
+            df (DF): Input DataFrame containing raw facturas data.
+
+        Returns:
+            DF: Cleaned DataFrame after imputations.
+        """
         logger.info("Starting imputations on facturas data")
         df_cleaned = df.filter(F.col("IdFactura").isNotNull())
 
@@ -30,6 +55,15 @@ class FacturasProcessor(BaseProcessor):
         return df_cleaned
 
     def transformations(self, df: DF) -> DF:
+        """
+        Transform the facturas data by renaming, enriching, and deriving fields.
+
+        Args:
+            df (DF): DataFrame after imputations.
+
+        Returns:
+            DF: Transformed facturas DataFrame.
+        """
         logger.info("Starting transformations on facturas data")
         df_transformed = (
             df.select(
@@ -79,10 +113,10 @@ class FacturasProcessor(BaseProcessor):
 
     def read_detail_data(self) -> DF:
         """
-        Read the detalle_facturas table from the silver layer.
+        Read and aggregate the detalle_facturas (invoice line items) from the Silver layer.
 
         Returns:
-            DataFrame: The loaded data from the detalle_facturas table.
+            DF: Aggregated detalle_facturas DataFrame grouped by invoice ID.
         """
         sources = self.config.get("sources")
         detalle_schema = sources.get("detalle_schema")
@@ -103,14 +137,14 @@ class FacturasProcessor(BaseProcessor):
     @staticmethod
     def add_detail_data(df: DF, df_details: DF) -> DF:
         """
-        Join the main DataFrame with the detalle_facturas data.
+        Join main facturas data with aggregated detalle_facturas data.
 
         Args:
-            df (DataFrame): The main DataFrame to join.
-            df_details (DataFrame): The detalle_facturas DataFrame.
+            df (DF): Main facturas DataFrame (transformed).
+            df_details (DF): Aggregated detalle_facturas DataFrame.
 
         Returns:
-            DataFrame: The joined DataFrame.
+            DF: Joined DataFrame enriched with detail totals and retention percentage.
         """
         logger.info("Joining facturas with detalle_facturas data")
         df_joined = df.join(df_details, on="IdFactura", how="inner").withColumn(
@@ -119,6 +153,17 @@ class FacturasProcessor(BaseProcessor):
         return df_joined
 
     def process(self):
+        """
+        Orchestrate the Bronze → Silver pipeline for facturas.
+
+        1. Read Bronze facturas table.
+        2. Read and aggregate Silver detalle_facturas data.
+        3. Apply imputations to Bronze facturas.
+        4. Transform facturas data (rename, enrich, derive fields).
+        5. Join facturas with aggregated detail data.
+        6. Write enriched dataset to Silver Delta table.
+        7. Update last processed watermark for incremental loading.
+        """
         logger.info(f"Starting processing of dataset {self.config.get('dataset')}")
         df_fact = self.read_bronze_table()
         df_detail = self.read_detail_data()

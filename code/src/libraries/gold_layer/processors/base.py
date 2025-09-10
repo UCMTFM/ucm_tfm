@@ -16,21 +16,24 @@ else:
 
 class BaseProcessor(ABC):
     """
-    Abstract base class for implementing data processing logic on Delta Lake tables
-    using PySpark.
+    Abstract base class for implementing data processing workflows using PySpark
+    in a Databricks + Azure Data Lake environment.
 
-    This class provides utility methods for:
-    - Reading data from a bronze table with optional incremental filtering
-    - Enriching and transforming data
-    - Writing processed data to a silver Delta table
-    - Maintaining metadata such as last processed timestamps
+    This class handles:
+      - Loading configuration from a JSON file stored in DBFS.
+      - Establishing authenticated connections to Azure Data Lake Storage using
+        Databricks secrets.
+      - Providing helper methods for reading tables from catalogs and schemas.
+      - Granting schema/table permissions to users.
 
-    Subclasses must implement the `process` method to define specific transformation logic.
+    Subclasses must implement the abstract :meth:`process` method to define
+    the specific processing workflow.
 
     Attributes:
-        spark (SparkSession): Active Spark session for processing data.
-        config (dict): Configuration dictionary loaded from a JSON file.
-        config_path (str): Path to the configuration file, used for updating metadata.
+        spark (SparkSession): The active Spark session.
+        config_path (str): Path to the JSON configuration file.
+        dbutils (DBUtils): Databricks utilities object for DBFS and secrets.
+        config (dict): Configuration loaded from the JSON file.
     """
 
     def __init__(self, config_path: str):
@@ -70,6 +73,16 @@ class BaseProcessor(ABC):
         )
 
     def read_table(self, schema: str, table: str) -> DF:
+        """
+        Read a table from the configured catalog and return it as a Spark DataFrame.
+
+        Args:
+            schema (str): Schema name (e.g., "silver", "bronze", "gold").
+            table (str): Table name within the schema.
+
+        Returns:
+            DF: A Spark DataFrame containing the table data.
+        """
         catalog = self.config.get("catalog")
         self.spark.sql(f"USE CATALOG {catalog}")
 
@@ -79,10 +92,34 @@ class BaseProcessor(ABC):
         return df
 
     def read_silver_table(self, table_name: str) -> DF:
+        """
+        Convenience method for reading a table from the ``silver`` schema.
+
+        Args:
+            table_name (str): Table name within the ``silver`` schema.
+
+        Returns:
+            DF: A Spark DataFrame with the contents of the table.
+        """
         schema = "silver"
         return self.read_table(schema, table_name)
 
     def grant_permissions(self, schema: str, catalog: str) -> None:
+        """
+        Grants standard permissions on a given schema within a catalog to a
+        list of users defined in the environment variable ``USERS``.
+
+        Granted permissions:
+            - USE CATALOG
+            - USE SCHEMA
+            - SELECT
+            - CREATE
+            - MODIFY
+
+        Args:
+            schema (str): Name of the schema (e.g., "silver").
+            catalog (str): Name of the catalog (e.g., "hive_metastore").
+        """
         users = os.environ.get("USERS").split(",")
         for user in users:
             try:
@@ -98,7 +135,7 @@ class BaseProcessor(ABC):
         """
         Write the processed DataFrame to the silver Delta table.
 
-        The table is partitioned by year, month, and day.
+        The table is partitioned by year.
 
         Args:
             df (DataFrame): Processed DataFrame to write.

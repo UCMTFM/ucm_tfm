@@ -8,7 +8,7 @@ class BatchIngestor(BaseIngestor):
     """
     Concrete implementation of BaseIngestor for batch ingestion.
 
-    This class defines the `ingest` method to read streaming data from a
+    This class defines the `ingest` method to read data from a
     landing zone, enrich it with metadata columns, and write it to a bronze
     Delta Lake table. It supports schema inference and checkpointing.
 
@@ -30,7 +30,7 @@ class BatchIngestor(BaseIngestor):
         """
         Perform the batch ingestion process:
             - Builds paths for the landing zone and bronze storage.
-            - Reads streaming data using the format and options specified in the config.
+            - Reads data using the format and options specified in the config.
             - Adds metadata columns such as `_ingested_filename` and `_ingestion_time`.
             - Writes the data as a Delta table in the bronze zone.
             - Waits for the streaming query to complete.

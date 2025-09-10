@@ -9,18 +9,48 @@ from .base import BaseProcessor
 
 
 class SalesByRouteProcessor(BaseProcessor):
+    """
+    Processor that aggregates daily product sales by route and prepares
+    model-ready features (including one-hot encodings) from Silver-layer tables.
+
+    Workflow:
+      1) Read Silver tables for invoices (facturas) and invoice details.
+      2) Join details with routes, aggregate daily quantities per route/product.
+      3) Add a lag feature (previous day's quantity).
+      4) One-hot encode selected categorical variables.
+      5) (Downstream) Write the result to Delta via `write_delta_table` (must exist in a parent class or mixin).
+
+    Expects in `config`:
+      - catalog: str
+      - secret_scope, lakehouse_*: for storage (handled by BaseProcessor)
+      - data_since: int  (e.g., 2022)  -> used to filter by year
+      - sources.detalle_facturas_table: str
+      - sources.facturas_table: str
+    """
 
     def __init__(self, config_path: str):
         """
-        Initialize the DetalleFacturasProcessor.
+        Initialize the SalesByRouteProcessor.
 
         Args:
-            config_path (str): Path to the JSON configuration file.
+            config_path (str): Path to the JSON configuration file in DBFS.
         """
         super().__init__(config_path)
 
     @staticmethod
     def get_model_vars(df_fact: DF, df_det_fact: DF) -> DF:
+        """
+        Build base modeling table with daily aggregates and a 1-day lag.
+
+        Args:
+            df_fact (DF): DataFrame with invoice headers.
+            df_det_fact (DF): DataFrame with invoice line items.
+
+        Returns:
+            DF: DataFrame with columns:
+                IdRuta, IdProducto, NombreProducto, Anio, Mes, Dia,
+                CantidadTotalPrevia, CantidadTotal
+        """
         df_det_route = df_det_fact.join(
             df_fact.select("IdFactura", "IdRuta"), on="IdFactura", how="left"
         )
@@ -47,6 +77,16 @@ class SalesByRouteProcessor(BaseProcessor):
         return df_agg_model
 
     def add_ohe_vars(self, df_agg_model: DF, categorical_cols: list[str]) -> DF:
+        """
+        One-hot encode selected categorical columns.
+
+        Args:
+            df_agg_model (DF): Base modeling DataFrame from `get_model_vars`.
+            categorical_cols (list[str]): Columns to encode.
+
+        Returns:
+            DF: Transformed DataFrame with new *_idx and *_ohe columns and filtered rows.
+        """
         indexers = [
             StringIndexer(inputCol=col, outputCol=col + "_idx", handleInvalid="keep")
             for col in categorical_cols
@@ -66,6 +106,13 @@ class SalesByRouteProcessor(BaseProcessor):
         return df_encoded
 
     def process(self):
+        """
+        Orchestrate the end-to-end processing:
+          - Read Silver tables defined in config['sources'].
+          - Build lagged aggregates with `get_model_vars`.
+          - One-hot encode categorical variables via `add_ohe_vars`.
+          - Write the result to Delta using `write_delta_table`.
+        """
         logger.info("Starting SalesByRoute processing")
         sources = self.config.get("sources")
         det_table_name = sources.get("detalle_facturas_table")
