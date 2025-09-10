@@ -73,6 +73,9 @@ class BaseIngestor(ABC):
             try:
                 self.spark.sql(f"GRANT USE CATALOG ON CATALOG {catalog} TO `{user}`;")
                 self.spark.sql(f"GRANT USE SCHEMA ON SCHEMA {catalog}.{schema} TO `{user}`;")
+                self.spark.sql(f"GRANT SELECT ON SCHEMA {schema} TO `{user}`;")
+                self.spark.sql(f"GRANT CREATE ON SCHEMA {schema} TO `{user}`;")
+                self.spark.sql(f"GRANT MODIFY ON SCHEMA {schema} TO `{user}`;")
             except Exception:
                 pass
 

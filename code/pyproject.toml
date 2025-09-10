@@ -34,7 +34,7 @@ package-dir = { "" = "src/libraries" }
 
 [tool.setuptools.packages.find]
 where = ["src/libraries"]
-include = ["bronze_layer*", "silver_layer*", "gold_layer*"]
+include = ["bronze_layer*", "silver_layer*", "gold_layer*", "machine_learning*"]
 
 [dependency-groups]
 dev = [
