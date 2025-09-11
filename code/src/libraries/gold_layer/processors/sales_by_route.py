@@ -18,7 +18,8 @@ class SalesByRouteProcessor(BaseProcessor):
       2) Join details with routes, aggregate daily quantities per route/product.
       3) Add a lag feature (previous day's quantity).
       4) One-hot encode selected categorical variables.
-      5) (Downstream) Write the result to Delta via `write_delta_table` (must exist in a parent class or mixin).
+      5) (Downstream) Write the result to Delta via `write_delta_table` (must exist in a parent
+        class or mixin).
 
     Expects in `config`:
       - catalog: str
