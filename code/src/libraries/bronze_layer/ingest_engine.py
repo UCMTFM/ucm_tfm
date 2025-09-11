@@ -4,7 +4,7 @@ from loguru import logger
 
 exec_env = os.getenv("EXECUTION_ENV", "local")
 if exec_env == "databricks-connect":
-    from registry import INGESTOR_REGISTRY
+    from .registry import INGESTOR_REGISTRY
 else:
     from bronze_layer.registry import INGESTOR_REGISTRY
 
