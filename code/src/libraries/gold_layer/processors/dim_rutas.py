@@ -9,14 +9,13 @@ from .base import BaseProcessor
 
 
 class GoldDimRutasProcessor(BaseProcessor):
-    """Route dimension built from silver.facturas with stable 'Ruta <N>' labels by idRuta."""
+    """Route dimension built from silver.facturas with stable Ruta <N> labels by idRuta."""
 
-    TABLE_COMMENT = (
-        "Route dimension from silver.facturas. Stable 'Ruta <N>' by idRuta (append-only)."
-    )
+    TABLE_COMMENT = "Routes dimension (gold). Built from silver.facturas with stable numbering by idRuta."
+
     DDL_COLUMNS_SQL = (
-        "idRuta STRING COMMENT 'Route ID from silver.facturas', "
-        "nombreRuta STRING COMMENT 'Generated label: Ruta <N>'"
+        "idRuta STRING COMMENT 'Route identifier (string) sourced from silver.facturas', "
+        "nombreRuta STRING COMMENT 'Human-friendly name generated as Ruta <N>'"
     )
 
     def process(self) -> None:

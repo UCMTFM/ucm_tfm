@@ -212,7 +212,7 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
         return _json.loads(raw)
 
     def _workspace_geo_base(self) -> str:
-        return "dbfs:/FileStore/config/geospatial_stage"
+        return "/Workspace/Shared/geospatial_stage"
 
     @staticmethod
     def _zfill_or_none(x, width):
