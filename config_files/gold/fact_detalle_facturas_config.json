@@ -1,0 +1,8 @@
+{
+  "catalog": "adbucmappinnovalakehouse",
+  "sources": { "main_schema": "silver", "main_table": "detalle_facturas" },
+  "sink": { "schema": "gold", "table": "fact_detalle_facturas" },
+  "lakehouse_storage_account_name": "staucmappinnovalakehouse",
+  "lakehouse_container_name": "lakehouse",
+  "table_properties": { "delta.appendOnly": "false" }
+}

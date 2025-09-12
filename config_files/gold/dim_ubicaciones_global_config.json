@@ -1,0 +1,43 @@
+{
+  "base_dir": "C:/TFM/TFM/Ubicaciones",
+
+  "input_csv": "lat_lon_client.csv",
+  "input_columns": {
+    "id": "NumeroCliente",
+    "lat": "Latitud",
+    "lon": "Longitud"
+  },
+
+  "output_csv": "lat_lon_client_enriched.csv",
+  "output_columns": [
+    "NumeroCliente",
+    "Latitud",
+    "Longitud",
+    "Cod_DANE",
+    "Departamento",
+    "Municipio",
+    "Distrito",
+    "Barrio"
+  ],
+  "adm_layers": {
+    "adm1": {
+      "path": "COL_ADM1.shp/COL_ADM1.shp",
+      "name_field": "NAME"
+    },
+    "adm2": {
+      "path": "COL_ADM2.shp/COL_ADM2.shp",
+      "name_field": "Name"
+    }
+  },
+
+  "mgn": {
+    "urbano": {
+      "path": "mgn2024_urb_seccion/MGN_URB_SECCION.shp",
+      "dept_code_field": "dpto_ccdgo",
+      "muni_code_field": "mpio_ccdgo"
+    },
+    "rural": {
+      "path": "mgn2024_rur_seccion/MGN_RUR_SECCION.shp"
+    }
+  }
+}

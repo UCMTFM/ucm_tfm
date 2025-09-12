@@ -1,0 +1,32 @@
+{
+  "layers": [
+    {
+      "id": "medellin_comunas",
+      "municipio_match": ["MEDELL"],
+      "cod_dane_match": ["05001"],
+      "path": "medellin_shp_comunas_y_corregimientos_/comunas_y_corregimientos_.shp",
+      "district_field": "nombre"
+    },
+    {
+      "id": "bogota_localidades",
+      "municipio_match": ["BOGOT"],
+      "cod_dane_match": ["11001"],
+      "path": "bogota-poligonos-localidades/poligonos-localidades.shp",
+      "district_field": "Nombre_de_l"
+    },
+    {
+      "id": "pereira_comunas",
+      "municipio_match": ["PEREIRA"],
+      "cod_dane_match": ["66001"],
+      "path": "ComunasPereira/Comunas.shp",
+      "district_field": "nombre"
+    },
+    {
+      "id": "manizales_comunas",
+      "municipio_match": ["MANIZALES"],
+      "cod_dane_match": ["17001"],
+      "path": "Comunas_de_Manizales/Límite_Comunas_Municipio_de_Manizales.shp",
+      "district_field": "NOMBRES_CO"
+    }
+  ]
+}

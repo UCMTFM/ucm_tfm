@@ -1,0 +1,12 @@
+{
+  "catalog": "adbucmappinnovalakehouse",
+  "sources": { "main_schema": "silver", "main_table": "facturas" },
+  "sink": { "schema": "gold", "table": "dim_forma_pago" },
+  "lakehouse_storage_account_name": "staucmappinnovalakehouse",
+  "lakehouse_container_name": "lakehouse",
+  "table_properties": {
+    "delta.autoOptimize.optimizeWrite": "true",
+    "delta.autoOptimize.autoCompact": "true",
+    "quality": "gold"
+  }
+}
