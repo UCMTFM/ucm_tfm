@@ -1,0 +1,50 @@
+{
+  
+  "secret_scope": "akv-ucmappinnova",
+  "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
+  "layers": [
+    {
+      "id": "medellin_barrios",
+      "municipio_match": ["MEDELL"], 
+      "cod_dane_match": ["05001"],
+      "path": "medellin_shp_barrios_y_veredas/barrios_y_veredas_mr.shp",
+      "name_field": "nombre"
+    },
+    {
+      "id": "bogota_barrios",
+      "municipio_match": ["BOGOT"],
+      "cod_dane_match": ["11001"],
+      "path": "barrios_bogota/barrios_prueba.shp",
+      "name_field": "barriocomu"
+    },
+    {
+      "id": "bello_barrios",
+      "municipio_match": ["BELLO"],
+      "cod_dane_match": ["05088"],
+      "path": "barrios_bello/División_Político_Administrativa_Barrios_Bello_Antioquia_20250824.geojson",
+      "name_field": "nombre"
+    },
+    {
+      "id": "envigado_barrios",
+      "municipio_match": ["ENVIGADO"],
+      "cod_dane_match": ["05266"],
+      "path": "barrios_envigado/Barrios_Municipio_de_Envigado_20250824.geojson",
+      "name_field": "nombarrio"
+    },
+    {
+      "id": "pereira_barrios",
+      "municipio_match": ["PEREIRA"],
+      "cod_dane_match": ["66001"],
+      "path": "barrios_pereira/Barrios.shp",
+      "name_field": "NOMBRE"
+    },
+    {
+      "id": "la_estrella_barrios",
+      "municipio_match": ["LA ESTRELLA"],
+      "cod_dane_match": ["05380"],
+      "path": "barrios_la_estrella/Municipio_de_La_Estrella_-_División_político_administrativa_20250825.geojson",
+      "name_field": "nombre_uni"
+    }
+    
+  ]
+}

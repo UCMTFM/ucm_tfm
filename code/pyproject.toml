@@ -20,6 +20,8 @@ dependencies = [
   "grpcio>=1.74.0",
   "grpcio-status==1.59.3",
   "streamlit>=1.28.0",
+  "geopandas==1.1.1",
+  "shapely==2.1.1",
 ]
 
 [build-system]
