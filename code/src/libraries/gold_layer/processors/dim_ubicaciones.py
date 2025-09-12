@@ -5,16 +5,16 @@ Builds <catalog>.gold.dim_ubicaciones from silver.facturas.
 """
 
 
-from loguru import logger
 from delta.tables import DeltaTable
+from loguru import logger
 from pyspark.sql import DataFrame as DF
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from .base_gold import BaseGoldProcessor, spark
+from .base import BaseProcessor
 
 
-class GoldDimUbicacionesProcessor(BaseGoldProcessor):
+class GoldDimUbicacionesProcessor(BaseProcessor):
     """Location dimension from silver.facturas; Phase A (Lat/Long) + Phase B (admin geo fields)"""
 
     TABLE_COMMENT = (
@@ -23,9 +23,9 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         "geo enrichment (Departamento/Municipio/Cod_DANE/Distrito/Barrio) via local shapefiles."
     )
     DDL_COLUMNS_SQL = (
-        "NumeroCliente INT COMMENT 'Surrogate customer number (stable, incremental by first-seen group)', "
-        "Latitud DOUBLE COMMENT 'Latitude from representative first-seen row', "
-        "Longitud DOUBLE COMMENT 'Longitude from representative first-seen row', "
+        "NumeroCliente INT COMMENT 'Surrogate customer number (stable, incremental "
+        "by first-seen group)', Latitud DOUBLE COMMENT 'Latitude from representative "
+        "first-seen row', Longitud DOUBLE COMMENT 'Longitude from representative first-seen row', "
         "Cod_DANE STRING COMMENT 'Código DANE (from MGN)', "
         "Departamento STRING COMMENT 'Departamento (from ADM1)', "
         "Municipio STRING COMMENT 'Municipio (from ADM2)', "
@@ -33,10 +33,9 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         "Barrio STRING COMMENT 'Barrio/Neighborhood (local layers)'"
     )
 
-    # -------------------- SOURCE (from silver.facturas) --------------------
     def read_base(self) -> DF:
         """Read minimal fields required to compute group_key and representative coordinates."""
-        f = spark.table(self.source_fullname).select(
+        f = self.spark.table(self.source_fullname).select(
             F.col("Identificacion").cast("string").alias("Identificacion_raw"),
             self.normalize_str_core(F.col("RazonSocialCliente")).alias("NombreCliente"),
             F.to_timestamp(F.col("FechaCreacion")).alias("ts_creacion"),
@@ -47,11 +46,13 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
 
         base = (
             f.where(
-                (F.col("Anulado") == F.lit(False)) &
-                F.col("Identificacion_raw").isNotNull() &
-                F.col("NombreCliente").isNotNull()
+                (F.col("Anulado") == F.lit(False))
+                & F.col("Identificacion_raw").isNotNull()
+                & F.col("NombreCliente").isNotNull()
             )
-            .withColumn("Identificacion_clean", self._canon_ident_for_tiebreak(F.col("Identificacion_raw")))
+            .withColumn(
+                "Identificacion_clean", self._canon_ident_for_tiebreak(F.col("Identificacion_raw"))
+            )
             .select(
                 F.col("Identificacion_raw").alias("Identificacion"),
                 F.col("Identificacion_clean"),
@@ -62,9 +63,10 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
             )
         )
 
-        return base.withColumn("group_key", self._group_key("Identificacion_clean", "NombreCliente"))
+        return base.withColumn(
+            "group_key", self._group_key("Identificacion_clean", "NombreCliente")
+        )
 
-    # -------------------- first-seen & representative per group --------------------
     def compute_first_seen_per_group(self, base: DF) -> DF:
         """First appearance timestamp per group_key."""
         return base.groupBy("group_key").agg(F.min("ts_creacion").alias("first_seen_ts"))
@@ -79,44 +81,41 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         )
         return (
             base.withColumn("rn", F.row_number().over(w))
-                .where(F.col("rn") == 1)
-                .select(
-                    "group_key",
-                    F.col("Identificacion").alias("Identificacion_rep"),
-                    F.col("NombreCliente").alias("NombreCliente_rep"),
-                    F.col("Latitud").alias("Latitud_rep"),
-                    F.col("Longitud").alias("Longitud_rep"),
-                )
+            .where(F.col("rn") == 1)
+            .select(
+                "group_key",
+                F.col("Identificacion").alias("Identificacion_rep"),
+                F.col("NombreCliente").alias("NombreCliente_rep"),
+                F.col("Latitud").alias("Latitud_rep"),
+                F.col("Longitud").alias("Longitud_rep"),
+            )
         )
 
     def compute_initial_dim(self, first_seen_grp: DF, rep_grp: DF) -> DF:
         """Assign NumeroCliente and project representative coordinates."""
         w_dense = Window.orderBy(F.col("first_seen_ts").asc(), F.col("group_key").asc())
-        numbered = (
-            first_seen_grp.withColumn("NumeroCliente", F.dense_rank().over(w_dense))
-                          .select("group_key", "NumeroCliente", "first_seen_ts")
+        numbered = first_seen_grp.withColumn("NumeroCliente", F.dense_rank().over(w_dense)).select(
+            "group_key", "NumeroCliente", "first_seen_ts"
         )
 
-        return (
-            numbered.join(rep_grp, on="group_key", how="inner")
-                    .select(
-                        F.col("NumeroCliente").cast("int").alias("NumeroCliente"),
-                        F.col("Identificacion_rep").alias("Identificacion"),
-                        F.col("NombreCliente_rep").alias("NombreCliente"),
-                        F.col("Latitud_rep").alias("Latitud"),
-                        F.col("Longitud_rep").alias("Longitud"),
-                        "first_seen_ts",
-                        "group_key"
-                    )
+        return numbered.join(rep_grp, on="group_key", how="inner").select(
+            F.col("NumeroCliente").cast("int").alias("NumeroCliente"),
+            F.col("Identificacion_rep").alias("Identificacion"),
+            F.col("NombreCliente_rep").alias("NombreCliente"),
+            F.col("Latitud_rep").alias("Latitud"),
+            F.col("Longitud_rep").alias("Longitud"),
+            "first_seen_ts",
+            "group_key",
         )
 
     # -------------------- TABLE CREATE (Phase A) --------------------
     def create_external_table(self, df_initial: DF) -> None:
-        """Create table and seed rows with admin columns set to NULL; drop rows without coordinates."""
+        """
+        Create table and seed rows with admin columns set to NULL; drop rows without coordinates.
+        """
         df_initial = df_initial.dropDuplicates(["NombreCliente"])
         df_initial = (
-            df_initial
-            .withColumn("Cod_DANE", F.lit(None).cast("string"))
+            df_initial.withColumn("Cod_DANE", F.lit(None).cast("string"))
             .withColumn("Departamento", F.lit(None).cast("string"))
             .withColumn("Municipio", F.lit(None).cast("string"))
             .withColumn("Distrito", F.lit(None).cast("string"))
@@ -126,14 +125,26 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
 
         super().create_external_table(
             df_initial=df_initial.select(
-                "NumeroCliente", "Latitud", "Longitud",
-                "Cod_DANE", "Departamento", "Municipio", "Distrito", "Barrio"
+                "NumeroCliente",
+                "Latitud",
+                "Longitud",
+                "Cod_DANE",
+                "Departamento",
+                "Municipio",
+                "Distrito",
+                "Barrio",
             ),
             ddl_columns_sql=self.DDL_COLUMNS_SQL,
             table_comment=self.TABLE_COMMENT,
             select_cols=[
-                "NumeroCliente", "Latitud", "Longitud",
-                "Cod_DANE", "Departamento", "Municipio", "Distrito", "Barrio"
+                "NumeroCliente",
+                "Latitud",
+                "Longitud",
+                "Cod_DANE",
+                "Departamento",
+                "Municipio",
+                "Distrito",
+                "Barrio",
             ],
         )
 
@@ -143,62 +154,71 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         logger.info("Running MERGE (insert-only by NumeroCliente) into GOLD.dim_ubicaciones")
 
         from pyspark.sql.window import Window
+
         df_new = (
             df_new.withColumn(
-                        "rn", F.row_number().over(
-                            Window.partitionBy("group_key").orderBy(
-                                F.col("first_seen_ts").asc(), F.col("NumeroCliente").asc()
-                            )
-                        )
+                "rn",
+                F.row_number().over(
+                    Window.partitionBy("group_key").orderBy(
+                        F.col("first_seen_ts").asc(), F.col("NumeroCliente").asc()
                     )
-                  .where(F.col("rn") == 1)
-                  .drop("rn")
-                  .dropDuplicates(["NombreCliente"])
-                  .withColumn("Cod_DANE", F.lit(None).cast("string"))
-                  .withColumn("Departamento", F.lit(None).cast("string"))
-                  .withColumn("Municipio", F.lit(None).cast("string"))
-                  .withColumn("Distrito", F.lit(None).cast("string"))
-                  .withColumn("Barrio", F.lit(None).cast("string"))
-                  .where(F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull())
-                  .select(
-                      "NumeroCliente", "Latitud", "Longitud",
-                      "Cod_DANE", "Departamento", "Municipio", "Distrito", "Barrio"
-                  )
+                ),
+            )
+            .where(F.col("rn") == 1)
+            .drop("rn")
+            .dropDuplicates(["NombreCliente"])
+            .withColumn("Cod_DANE", F.lit(None).cast("string"))
+            .withColumn("Departamento", F.lit(None).cast("string"))
+            .withColumn("Municipio", F.lit(None).cast("string"))
+            .withColumn("Distrito", F.lit(None).cast("string"))
+            .withColumn("Barrio", F.lit(None).cast("string"))
+            .where(F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull())
+            .select(
+                "NumeroCliente",
+                "Latitud",
+                "Longitud",
+                "Cod_DANE",
+                "Departamento",
+                "Municipio",
+                "Distrito",
+                "Barrio",
+            )
         )
 
-        delta_tgt = DeltaTable.forName(spark, self.target_fullname)
-        (delta_tgt.alias("t")
-                 .merge(df_new.alias("s"), "t.NumeroCliente = s.NumeroCliente")
-                 .whenNotMatchedInsert(values={
-                     "NumeroCliente": "s.NumeroCliente",
-                     "Latitud": "s.Latitud",
-                     "Longitud": "s.Longitud",
-                     "Cod_DANE": "s.Cod_DANE",
-                     "Departamento": "s.Departamento",
-                     "Municipio": "s.Municipio",
-                     "Distrito": "s.Distrito",
-                     "Barrio": "s.Barrio",
-                 })
-                 .execute())
+        delta_tgt = DeltaTable.forName(self.spark, self.target_fullname)
+        (
+            delta_tgt.alias("t")
+            .merge(df_new.alias("s"), "t.NumeroCliente = s.NumeroCliente")
+            .whenNotMatchedInsert(
+                values={
+                    "NumeroCliente": "s.NumeroCliente",
+                    "Latitud": "s.Latitud",
+                    "Longitud": "s.Longitud",
+                    "Cod_DANE": "s.Cod_DANE",
+                    "Departamento": "s.Departamento",
+                    "Municipio": "s.Municipio",
+                    "Distrito": "s.Distrito",
+                    "Barrio": "s.Barrio",
+                }
+            )
+            .execute()
+        )
 
-    # -------------------- Phase B utilities --------------------
-    @staticmethod
-    def _read_json_dbfs(path: str) -> dict:
+    def _read_json_dbfs(self, path: str) -> dict:
         """Small helper to read JSON config from DBFS."""
-        raw = dbutils.fs.head(path, 1024 * 1024)
+        raw = self.dbutils.fs.head(path, 1024 * 1024)
         import json as _json
+
         return _json.loads(raw)
 
-    @staticmethod
-    def _workspace_geo_base() -> str:
-        """Workspace base folder for staged shapefiles used in enrichment."""
-        user = spark.sql("select current_user()").collect()[0][0]
-        return f"/Workspace/Users/{user}/geospatial_stage"
+    def _workspace_geo_base(self) -> str:
+        return "dbfs:/FileStore/config/geospatial_stage"
 
     @staticmethod
     def _zfill_or_none(x, width):
         """Zero-pad codes while being robust to NaNs and 'float-like' strings."""
         import pandas as _pd
+
         if _pd.isna(x):
             return None
         s = str(x).strip()
@@ -212,7 +232,9 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
     def _load_layer_local(self, rel_path: str):
         """Load a local (workspace) vector layer with EPSG:4326 geometry."""
         import os
+
         import geopandas as gpd
+
         p = os.path.join(self._workspace_geo_base(), rel_path)
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing layer: {p}")
@@ -228,13 +250,13 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         Fill a textual admin attribute (Distrito, Barrio) from a local polygon layer,
         restricted by candidate city names or Cod_DANE when provided in config.
         """
-        import pandas as pd
         import geopandas as gpd
+        import pandas as pd
 
         path = layer_conf["path"]
         name_field = layer_conf.get("name_field") or layer_conf.get("district_field")
         muni_patterns = [p.upper() for p in layer_conf.get("municipio_match", [])]
-        dane_list     = set(layer_conf.get("cod_dane_match", []))
+        dane_list = set(layer_conf.get("cod_dane_match", []))
 
         if out_col not in pts.columns:
             pts[out_col] = pd.NA
@@ -256,19 +278,27 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
 
         gdf_poly = self._load_layer_local(path)
         if name_field not in gdf_poly.columns:
-            logger.warning(f"(warning) {layer_conf.get('id')} missing '{name_field}'. Columns: {list(gdf_poly.columns)[:6]} ... → skipping.")
+            logger.warning(
+                f"(warning) {layer_conf.get('id')} missing '{name_field}'. "
+                f"Columns: {list(gdf_poly.columns)[:6]} ... → skipping."
+            )
             return pts
 
         gdf_poly = gdf_poly[[name_field, "geometry"]].copy()
 
         pts_city = pts.loc[mask].copy().reset_index(names="_idx")
-        joined = gpd.sjoin(pts_city, gdf_poly, how="left", predicate="intersects").drop(columns=["index_right"])
+        joined = gpd.sjoin(pts_city, gdf_poly, how="left", predicate="intersects").drop(
+            columns=["index_right"]
+        )
 
         first = joined.sort_values("_idx").drop_duplicates("_idx", keep="first").set_index("_idx")
         first = first.reindex(pts_city["_idx"])
 
         pts.loc[mask, out_col] = first[name_field].astype("string").values
-        logger.info(f"(ok) {layer_conf.get('id')}: '{out_col}' <- '{name_field}' assigned to {first[name_field].notna().sum()} points.")
+        logger.info(
+            f"(ok) {layer_conf.get('id')}: '{out_col}' <- '{name_field}' "
+            f"assigned to {first[name_field].notna().sum()} points."
+        )
         return pts
 
     def _enrich_geospatial_pdf(self, pdf):
@@ -276,16 +306,21 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         Enrich a pandas DataFrame [NumeroCliente, Latitud, Longitud] with:
         Departamento, Municipio, Cod_DANE, Distrito, Barrio.
         """
-        import pandas as pd
-        import geopandas as gpd
-        from shapely.geometry import Point
         import os
 
+        import geopandas as gpd
+        import pandas as pd
+        from shapely.geometry import Point
+
         # 1) Load configs
-        CFG  = self._read_json_dbfs("dbfs:/FileStore/config/gold/dim_ubicaciones_global_config.json")
-        DIST = self._read_json_dbfs("dbfs:/FileStore/config/gold/dim_ubicaciones_distritos_config.json")
+        CFG = self._read_json_dbfs("dbfs:/FileStore/config/gold/dim_ubicaciones_global_config.json")
+        DIST = self._read_json_dbfs(
+            "dbfs:/FileStore/config/gold/dim_ubicaciones_distritos_config.json"
+        )
         try:
-            BAR = self._read_json_dbfs("dbfs:/FileStore/config/gold/dim_ubicaciones_barrios_config.json")
+            BAR = self._read_json_dbfs(
+                "dbfs:/FileStore/config/gold/dim_ubicaciones_barrios_config.json"
+            )
         except Exception:
             BAR = {"layers": []}
 
@@ -293,7 +328,7 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         gpts = gpd.GeoDataFrame(
             pdf.copy(),
             geometry=[Point(xy) for xy in zip(pdf["Longitud"], pdf["Latitud"])],
-            crs="EPSG:4326"
+            crs="EPSG:4326",
         )
 
         # 3) ADM1 / ADM2 join
@@ -302,22 +337,29 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
 
         adm1 = self._load_layer_local(adm1_conf["path"])
         adm2 = self._load_layer_local(adm2_conf["path"])
-        name1 = adm1_conf["name_field"]; name2 = adm2_conf["name_field"]
+        name1 = adm1_conf["name_field"]
+        name2 = adm2_conf["name_field"]
 
         adm1 = adm1[[name1, "geometry"]].rename(columns={name1: "Departamento"})
         adm2 = adm2[[name2, "geometry"]].rename(columns={name2: "Municipio"})
 
-        gpts = gpd.sjoin(gpts, adm1, how="left", predicate="intersects").drop(columns=["index_right"])
-        gpts = gpd.sjoin(gpts, adm2, how="left", predicate="intersects").drop(columns=["index_right"])
+        gpts = gpd.sjoin(gpts, adm1, how="left", predicate="intersects").drop(
+            columns=["index_right"]
+        )
+        gpts = gpd.sjoin(gpts, adm2, how="left", predicate="intersects").drop(
+            columns=["index_right"]
+        )
 
         # 4) MGN (Cod_DANE)
-        mgn  = CFG["mgn"]
-        urb  = self._load_layer_local(mgn["urbano"]["path"])
+        mgn = CFG["mgn"]
+        urb = self._load_layer_local(mgn["urbano"]["path"])
         dcol = mgn["urbano"]["dept_code_field"]
         mcol = mgn["urbano"]["muni_code_field"]
 
         urb = urb[[dcol, mcol, "geometry"]]
-        gpts = gpd.sjoin(gpts, urb, how="left", predicate="intersects").drop(columns=["index_right"])
+        gpts = gpd.sjoin(gpts, urb, how="left", predicate="intersects").drop(
+            columns=["index_right"]
+        )
 
         rur_path = (mgn.get("rural") or {}).get("path")
         if rur_path and os.path.exists(os.path.join(self._workspace_geo_base(), rur_path)):
@@ -330,15 +372,17 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
                     gpts.loc[mask, dcol] = fill.get(f"{dcol}_right", fill.get(dcol)).values
                     gpts.loc[mask, mcol] = fill.get(f"{mcol}_right", fill.get(mcol)).values
 
-        gpts["cod_dpto"]    = gpts[dcol].apply(lambda x: self._zfill_or_none(x, 2))
+        gpts["cod_dpto"] = gpts[dcol].apply(lambda x: self._zfill_or_none(x, 2))
         gpts["cod_mpio_3d"] = gpts[mcol].apply(lambda x: self._zfill_or_none(x, 3))
-        gpts["Cod_DANE"]    = [(a or "") + (b or "") if (a and b) else None
-                               for a, b in zip(gpts["cod_dpto"], gpts["cod_mpio_3d"])]
+        gpts["Cod_DANE"] = [
+            (a or "") + (b or "") if (a and b) else None
+            for a, b in zip(gpts["cod_dpto"], gpts["cod_mpio_3d"])
+        ]
 
         # 5) Local layers: Distrito / Barrio
         for layer in DIST.get("layers", []):
             gpts = self._apply_local_layer(gpts, layer_conf=layer, out_col="Distrito")
-        for layer in (BAR.get("layers", []) or []):
+        for layer in BAR.get("layers", []) or []:
             gpts = self._apply_local_layer(gpts, layer_conf=layer, out_col="Barrio")
 
         # 6) Output pandas frame with required columns
@@ -357,10 +401,11 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
             logger.info("Phase B: nothing to enrich (empty scope).")
             return
 
-        sdf_scope = (sdf_scope
-                     .where(F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull())
-                     .select("NumeroCliente", "Latitud", "Longitud")
-                     .dropDuplicates(["NumeroCliente"]))
+        sdf_scope = (
+            sdf_scope.where(F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull())
+            .select("NumeroCliente", "Latitud", "Longitud")
+            .dropDuplicates(["NumeroCliente"])
+        )
 
         if self._df_is_empty(sdf_scope):
             logger.info("Phase B: scope has no valid coordinates.")
@@ -370,38 +415,37 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         logger.info(f"Phase B: enriching {len(pdf)} points…")
         pdf_enriched = self._enrich_geospatial_pdf(pdf)
 
-        # keep only rows that contribute any admin value
-        import pandas as pd
         non_null_mask = (
-            pdf_enriched["Departamento"].notna() |
-            pdf_enriched["Municipio"].notna() |
-            pdf_enriched["Cod_DANE"].notna() |
-            pdf_enriched["Distrito"].notna() |
-            pdf_enriched["Barrio"].notna()
+            pdf_enriched["Departamento"].notna()
+            | pdf_enriched["Municipio"].notna()
+            | pdf_enriched["Cod_DANE"].notna()
+            | pdf_enriched["Distrito"].notna()
+            | pdf_enriched["Barrio"].notna()
         )
         pdf_enriched = pdf_enriched.loc[non_null_mask].copy()
         if len(pdf_enriched) == 0:
             logger.info("Phase B: no new admin attributes to apply.")
             return
 
-        sdf_upd = spark.createDataFrame(pdf_enriched)
+        sdf_upd = self.spark.createDataFrame(pdf_enriched)
 
-        delta_tgt = DeltaTable.forName(spark, self.target_fullname)
+        delta_tgt = DeltaTable.forName(self.spark, self.target_fullname)
         (
             delta_tgt.alias("t")
             .merge(sdf_upd.alias("s"), "t.NumeroCliente = s.NumeroCliente")
-            .whenMatchedUpdate(set={
-                "Cod_DANE":      "coalesce(s.Cod_DANE, t.Cod_DANE)",
-                "Departamento":  "coalesce(s.Departamento, t.Departamento)",
-                "Municipio":     "coalesce(s.Municipio, t.Municipio)",
-                "Distrito":      "coalesce(s.Distrito, t.Distrito)",
-                "Barrio":        "coalesce(s.Barrio, t.Barrio)",
-            })
+            .whenMatchedUpdate(
+                set={
+                    "Cod_DANE": "coalesce(s.Cod_DANE, t.Cod_DANE)",
+                    "Departamento": "coalesce(s.Departamento, t.Departamento)",
+                    "Municipio": "coalesce(s.Municipio, t.Municipio)",
+                    "Distrito": "coalesce(s.Distrito, t.Distrito)",
+                    "Barrio": "coalesce(s.Barrio, t.Barrio)",
+                }
+            )
             .execute()
         )
         logger.info(f"Phase B: updated {sdf_upd.count()} rows with geo attributes.")
 
-    # -------------------- MAIN --------------------
     def process(self) -> None:
         """Build initial table (Phase A + B) or perform incremental inserts + enrichment."""
         logger.info(f"Starting GOLD process for {self.target_fullname}")
@@ -419,12 +463,28 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
             logger.info(f"Created and loaded table {self.target_fullname} at {self.target_path}")
 
             # Phase B over any row with coords and missing admin attributes
-            scope = spark.table(self.target_fullname).select(
-                "NumeroCliente", "Latitud", "Longitud", "Departamento", "Municipio", "Cod_DANE", "Distrito", "Barrio"
-            ).where(
-                (F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull()) &
-                (F.col("Departamento").isNull() | F.col("Municipio").isNull() |
-                 F.col("Cod_DANE").isNull() | F.col("Distrito").isNull() | F.col("Barrio").isNull())
+            scope = (
+                self.spark.table(self.target_fullname)
+                .select(
+                    "NumeroCliente",
+                    "Latitud",
+                    "Longitud",
+                    "Departamento",
+                    "Municipio",
+                    "Cod_DANE",
+                    "Distrito",
+                    "Barrio",
+                )
+                .where(
+                    (F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull())
+                    & (
+                        F.col("Departamento").isNull()
+                        | F.col("Municipio").isNull()
+                        | F.col("Cod_DANE").isNull()
+                        | F.col("Distrito").isNull()
+                        | F.col("Barrio").isNull()
+                    )
+                )
             )
             self._phase_b_update(scope)
             return
@@ -432,7 +492,7 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         logger.info("Target table exists. Performing incremental insert (mirror logic)...")
         dim_current_all = self.compute_initial_dim(first_seen_grp, rep_grp)
 
-        tgt = spark.table(self.target_fullname).select("NumeroCliente")
+        tgt = self.spark.table(self.target_fullname).select("NumeroCliente")
         new_rows = dim_current_all.join(tgt, on="NumeroCliente", how="left_anti").distinct()
 
         if self._df_is_empty(new_rows):
@@ -443,39 +503,43 @@ class GoldDimUbicacionesProcessor(BaseGoldProcessor):
         max_n = int(max_n) if max_n is not None else 0
 
         w_new = Window.orderBy(F.col("first_seen_ts").asc(), F.col("group_key").asc())
-        to_insert = (
-            new_rows.withColumn("rn_tmp", F.row_number().over(w_new) + F.lit(max_n))
-                     .select(
-                         F.col("rn_tmp").cast("int").alias("NumeroCliente"),
-                         "first_seen_ts",
-                         "group_key",
-                         "NombreCliente",
-                         "Latitud",
-                         "Longitud",
-                     )
+        to_insert = new_rows.withColumn("rn_tmp", F.row_number().over(w_new) + F.lit(max_n)).select(
+            F.col("rn_tmp").cast("int").alias("NumeroCliente"),
+            "first_seen_ts",
+            "group_key",
+            "NombreCliente",
+            "Latitud",
+            "Longitud",
         )
 
         to_insert = (
             to_insert.withColumn(
-                        "rn", F.row_number().over(
-                            Window.partitionBy("group_key").orderBy(
-                                F.col("first_seen_ts").asc(), F.col("NumeroCliente").asc()
-                            )
-                        )
+                "rn",
+                F.row_number().over(
+                    Window.partitionBy("group_key").orderBy(
+                        F.col("first_seen_ts").asc(), F.col("NumeroCliente").asc()
                     )
-                    .where(F.col("rn") == 1)
-                    .drop("rn")
-                    .dropDuplicates(["NombreCliente"])
-                    .withColumn("Cod_DANE", F.lit(None).cast("string"))
-                    .withColumn("Departamento", F.lit(None).cast("string"))
-                    .withColumn("Municipio", F.lit(None).cast("string"))
-                    .withColumn("Distrito", F.lit(None).cast("string"))
-                    .withColumn("Barrio", F.lit(None).cast("string"))
-                    .where(F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull())
-                    .select(
-                        "NumeroCliente", "Latitud", "Longitud",
-                        "Cod_DANE", "Departamento", "Municipio", "Distrito", "Barrio"
-                    )
+                ),
+            )
+            .where(F.col("rn") == 1)
+            .drop("rn")
+            .dropDuplicates(["NombreCliente"])
+            .withColumn("Cod_DANE", F.lit(None).cast("string"))
+            .withColumn("Departamento", F.lit(None).cast("string"))
+            .withColumn("Municipio", F.lit(None).cast("string"))
+            .withColumn("Distrito", F.lit(None).cast("string"))
+            .withColumn("Barrio", F.lit(None).cast("string"))
+            .where(F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull())
+            .select(
+                "NumeroCliente",
+                "Latitud",
+                "Longitud",
+                "Cod_DANE",
+                "Departamento",
+                "Municipio",
+                "Distrito",
+                "Barrio",
+            )
         )
 
         # Phase A: insert

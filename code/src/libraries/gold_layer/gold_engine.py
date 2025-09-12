@@ -4,7 +4,7 @@ from loguru import logger
 
 exec_env = os.getenv("EXECUTION_ENV", "local")
 if exec_env == "databricks-connect":
-    from .registry import PROCESSOR_REGISTRY
+    from registry import PROCESSOR_REGISTRY
 else:
     from gold_layer.registry import PROCESSOR_REGISTRY
 
@@ -48,7 +48,7 @@ class GoldEngine:
 
 
 if __name__ == "__main__":
-    dataset = "sales_by_route"
-    config_path = f"dbfs:/FileStore/config/gold/{dataset}_config.json"
+    dataset = "dim_clientes"
+    config_path = f"config_files/gold/{dataset}_config.json"
     engine = GoldEngine(dataset, config_path)
     engine.process()

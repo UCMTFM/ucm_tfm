@@ -1,11 +1,11 @@
 {
   "catalog": "adbucmappinnovalakehouse",
-  "secret_scope": "akv-ucmappinnova",
-  "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
   "sources": { "main_schema": "silver", "main_table": "facturas" },
-  "sink": { "schema": "gold", "table": "dim_productos" },
+  "sink": { "schema": "gold", "table": "dim_rutas" },
   "lakehouse_storage_account_name": "staucmappinnovalakehouse",
   "lakehouse_container_name": "lakehouse",
+  "secret_scope": "akv-tfmappinnova",
+  "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
   "table_properties": {
     "delta.autoOptimize.optimizeWrite": "true",
     "delta.autoOptimize.autoCompact": "true"

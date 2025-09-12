@@ -3,15 +3,15 @@
 Seeds <catalog>.gold.dim_forma_pago (static payment methods).
 """
 
-from loguru import logger
 from delta.tables import DeltaTable
-from pyspark.sql import Row
+from loguru import logger
 from pyspark.sql import DataFrame as DF
+from pyspark.sql import Row
 
-from .base_gold import BaseGoldProcessor, spark
+from .base import BaseProcessor
 
 
-class GoldDimFormaPagoProcessor(BaseGoldProcessor):
+class GoldDimFormaPagoProcessor(BaseProcessor):
     """Payment method dimension (seeded/static)."""
 
     TABLE_COMMENT = "Payment method dimension (seeded/static)."
@@ -26,21 +26,20 @@ class GoldDimFormaPagoProcessor(BaseGoldProcessor):
             Row(IdFormaPago="000", FormaPago="Efectivo"),
             Row(IdFormaPago="008", FormaPago="Transferencia"),
         ]
-        return spark.createDataFrame(rows).select("IdFormaPago", "FormaPago")
+        return self.spark.createDataFrame(rows).select("IdFormaPago", "FormaPago")
 
     def _merge_seed(self, df_seed: DF) -> None:
         """Upsert the seed into the Delta target."""
-        delta_tgt = DeltaTable.forName(spark, self.target_fullname)
-        (delta_tgt.alias("t")
-                 .merge(df_seed.alias("s"), "t.IdFormaPago = s.IdFormaPago")
-                 .whenNotMatchedInsert(values={
-                     "IdFormaPago": "s.IdFormaPago",
-                     "FormaPago":   "s.FormaPago"
-                 })
-                 .whenMatchedUpdate(set={
-                     "FormaPago": "s.FormaPago"
-                 })
-                 .execute())
+        delta_tgt = DeltaTable.forName(self.spark, self.target_fullname)
+        (
+            delta_tgt.alias("t")
+            .merge(df_seed.alias("s"), "t.IdFormaPago = s.IdFormaPago")
+            .whenNotMatchedInsert(
+                values={"IdFormaPago": "s.IdFormaPago", "FormaPago": "s.FormaPago"}
+            )
+            .whenMatchedUpdate(set={"FormaPago": "s.FormaPago"})
+            .execute()
+        )
 
     def process(self) -> None:
         """Create if missing; otherwise ensure the two codes exist (idempotent)."""

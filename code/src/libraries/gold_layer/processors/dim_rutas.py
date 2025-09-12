@@ -4,15 +4,16 @@ Builds <catalog>.gold.dim_rutas from silver.facturas.
 """
 
 from loguru import logger
-from pyspark.sql import functions as F
 
-from .base_gold import BaseGoldProcessor
+from .base import BaseProcessor
 
 
-class GoldDimRutasProcessor(BaseGoldProcessor):
+class GoldDimRutasProcessor(BaseProcessor):
     """Route dimension built from silver.facturas with stable 'Ruta <N>' labels by idRuta."""
 
-    TABLE_COMMENT = "Route dimension from silver.facturas. Stable 'Ruta <N>' by idRuta (append-only)."
+    TABLE_COMMENT = (
+        "Route dimension from silver.facturas. Stable 'Ruta <N>' by idRuta (append-only)."
+    )
     DDL_COLUMNS_SQL = (
         "idRuta STRING COMMENT 'Route ID from silver.facturas', "
         "nombreRuta STRING COMMENT 'Generated label: Ruta <N>'"
