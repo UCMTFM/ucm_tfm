@@ -30,7 +30,7 @@ def load_dataset_into_gold(dataset: GoldDatasets):
 def load_datasets_into_gold():
     load_dim_cliente = load_dataset_into_gold(GoldDatasets.DIM_CLIENTES)
     load_dim_rutas = load_dataset_into_gold(GoldDatasets.DIM_RUTAS)
-    load_dim_productos = load_dataset_into_gold(GoldDatasets.DIM_PRODUCTOS)
+    # load_dim_productos = load_dataset_into_gold(GoldDatasets.DIM_PRODUCTOS)
     load_fact_facturas = load_dataset_into_gold(GoldDatasets.FACT_FACTURAS)
     load_fact_detalle_facturas = load_dataset_into_gold(
         GoldDatasets.FACT_DETALLE_FACTURAS
@@ -41,7 +41,6 @@ def load_datasets_into_gold():
             load_dim_cliente,
             load_dim_rutas,
         ],
-        load_dim_productos,
         load_fact_facturas,
         load_fact_detalle_facturas,
     )
