@@ -28,4 +28,6 @@ class SilverDatasets(StrEnum):
 class GoldDatasets(StrEnum):
     DIM_CLIENTES = "dim_clientes"
     DIM_RUTAS = "dim_rutas"
+    DIM_PRODUCTOS = "dim_productos"
     FACT_FACTURAS = "fact_facturas"
+    FACT_DETALLE_FACTURAS = "fact_detalle_facturas"

@@ -1,6 +1,7 @@
 from airflow.decorators import task_group
 from airflow.models.baseoperator import chain
 import pendulum
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.models.dag import DAG
@@ -52,8 +53,15 @@ with DAG(
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
 
+    trigger_gold_dag = TriggerDagRunOperator(
+        task_id="trigger_datasets_to_gold_dag",
+        trigger_dag_id="ingest_datasets_into_gold",
+        wait_for_completion=False,
+    )
+
     chain(
         start,
         load_datasets_into_silver(),
+        trigger_gold_dag,
         end,
     )
