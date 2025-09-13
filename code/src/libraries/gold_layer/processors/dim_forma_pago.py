@@ -12,7 +12,19 @@ from .base import BaseProcessor
 
 
 class GoldDimFormaPagoProcessor(BaseProcessor):
-    """Payment method dimension (seeded/static)."""
+    """
+    GOLD payment method dimension seeded with a fixed, small set of codes.
+
+    Workflow:
+        1. Build a tiny in-memory seed with the required payment method codes.
+        2. If the target table is missing, create the external Delta table and load the seed.
+        3. If the table exists, upsert the seed to ensure codes/names are present and up to date.
+        4. Apply optional table properties from configuration.
+
+    Inherits from:
+        BaseProcessor: Provides Spark handles, configuration loading, schema management,
+        and shared Delta utilities used by this processor.
+    """  
 
     TABLE_COMMENT = "Payment method dimension (seeded/static)."
     DDL_COLUMNS_SQL = (
@@ -21,7 +33,13 @@ class GoldDimFormaPagoProcessor(BaseProcessor):
     )
 
     def _seed_df(self) -> DF:
-        """Small in-memory DataFrame with the required codes."""
+        """
+        Build the in-memory seed for the dimension.
+
+        Returns:
+            DF: DataFrame with the canonical set of payment methods,
+                including columns `IdFormaPago` and `FormaPago`.
+        """  
         rows = [
             Row(IdFormaPago="000", FormaPago="Efectivo"),
             Row(IdFormaPago="008", FormaPago="Transferencia"),
@@ -29,7 +47,15 @@ class GoldDimFormaPagoProcessor(BaseProcessor):
         return self.spark.createDataFrame(rows).select("IdFormaPago", "FormaPago")
 
     def _merge_seed(self, df_seed: DF) -> None:
-        """Upsert the seed into the Delta target."""
+        """
+        Upsert the seed rows into the Delta target (idempotent).
+
+        Args:
+            df_seed (DF): Seed DataFrame with `IdFormaPago` and `FormaPago`.
+
+        Returns:
+            None
+        """  
         delta_tgt = DeltaTable.forName(self.spark, self.target_fullname)
         (
             delta_tgt.alias("t")
@@ -42,7 +68,19 @@ class GoldDimFormaPagoProcessor(BaseProcessor):
         )
 
     def process(self) -> None:
-        """Create if missing; otherwise ensure the two codes exist (idempotent)."""
+        """
+        Create the table on first run and ensure the seed codes exist on subsequent runs.
+
+        Steps:
+            1) Ensure the target schema exists.
+            2) Build the in-memory seed DataFrame.
+            3) If the table does not exist: create/register the external Delta table and seed it.
+            4) Otherwise: upsert the seed (insert new codes / refresh names).
+            5) Apply table properties if configured.
+
+        Returns:
+            None
+        """  
         logger.info(f"Starting GOLD process for {self.target_fullname}")
         self.ensure_schema()
 

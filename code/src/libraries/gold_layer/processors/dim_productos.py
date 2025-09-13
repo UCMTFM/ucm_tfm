@@ -14,8 +14,15 @@ from .base import BaseProcessor
 
 class GoldDimProductosProcessor(BaseProcessor):
     """
-    Products dimension (gold). Built from silver.facturas + silver.detalle_facturas with stable
-    surrogate id.
+    Products dimension (gold). Built from silver.facturas + silver.detalle_facturas with a
+    stable surrogate id.
+
+    Workflow:
+        1) Read `silver.detalle_facturas` joined with `silver.facturas` to exclude annulled rows.
+        2) Normalize product names and filter out marketing-like items.
+        3) Apply targeted name fixes and re-normalize.
+        4) Compute first-seen timestamp per normalized name and assign `IdProducto` by dense rank.
+        5) Create the table on first run and seed rows; otherwise insert only new products.
     """
 
     TABLE_COMMENT = (
@@ -29,7 +36,14 @@ class GoldDimProductosProcessor(BaseProcessor):
     }
 
     def read_joined_source(self) -> DF:
-        """Join detail with header to remove Anulado facts; keep product name + creation time."""
+        """
+        Read and join detail with header to filter out annulled facts.
+
+        Returns:
+            DF: DataFrame with columns:
+                - NombreProducto (string)
+                - FechaCreacion_det (timestamp)
+        """
         cat = self.catalog
         d = self.spark.table(f"{cat}.silver.detalle_facturas").select(
             F.col("IdFactura").alias("IdFactura"),
@@ -37,7 +51,8 @@ class GoldDimProductosProcessor(BaseProcessor):
             F.col("FechaCreacion").alias("FechaCreacion_det"),
         )
         f = self.spark.table(f"{cat}.silver.facturas").select(
-            F.col("IdFactura").alias("IdFactura"), F.col("Anulado").cast("boolean").alias("Anulado")
+            F.col("IdFactura").alias("IdFactura"),
+            F.col("Anulado").cast("boolean").alias("Anulado"),
         )
 
         return (
@@ -47,14 +62,32 @@ class GoldDimProductosProcessor(BaseProcessor):
         )
 
     def normalize_names(self, src: DF) -> DF:
-        """Baseline normalization."""
+        """
+        Apply baseline normalization to product names.
+
+        Args:
+            src (DF): Input with `NombreProducto` and `FechaCreacion_det`.
+
+        Returns:
+            DF: DataFrame with
+                - NombreProductoNorm (normalized name)
+                - FechaCreacion     (timestamp)
+        """
         return src.select(
             self.normalize_str(F.col("NombreProducto")).alias("NombreProductoNorm"),
             F.col("FechaCreacion_det").alias("FechaCreacion"),
         )
 
     def filter_base(self, norm: DF) -> DF:
-        """Drop marketing-like items (dimension hygiene)."""
+        """
+        Remove marketing-like items for dimension hygiene.
+
+        Args:
+            norm (DF): DataFrame with `NombreProductoNorm`.
+
+        Returns:
+            DF: Filtered DataFrame excluding terms such as OFERTA, PROMO, FIDELIZ, BONO, REGALO.
+        """
         return (
             norm.where(~F.col("NombreProductoNorm").contains("OFERTA"))
             .where(~F.col("NombreProductoNorm").contains("PROMO"))
@@ -64,7 +97,17 @@ class GoldDimProductosProcessor(BaseProcessor):
         )
 
     def map_name_fixes(self, base: DF) -> DF:
-        """Apply targeted fixes and re-normalize to final form."""
+        """
+        Apply targeted name fixes and re-normalize to final form.
+
+        Args:
+            base (DF): DataFrame with `NombreProductoNorm` and `FechaCreacion`.
+
+        Returns:
+            DF: DataFrame with canonicalized
+                - NombreProductoNorm
+                - FechaCreacion
+        """
         c = F.col("NombreProductoNorm")
         mapped = base.select(
             F.when(c == F.lit("GELATINA BALNCA"), F.lit("GELATINA BLANCA"))
@@ -81,13 +124,33 @@ class GoldDimProductosProcessor(BaseProcessor):
         )
 
     def compute_first_seen(self, mapped: DF) -> DF:
-        """First-seen time per normalized product name."""
+        """
+        Compute first-seen timestamp per normalized product name.
+
+        Args:
+            mapped (DF): DataFrame with `NombreProductoNorm` and `FechaCreacion`.
+
+        Returns:
+            DF: DataFrame with
+                - NombreProductoNorm
+                - first_seen_ts (timestamp)
+        """
         return mapped.groupBy("NombreProductoNorm").agg(
             F.min(F.to_timestamp(F.col("FechaCreacion"))).alias("first_seen_ts")
         )
 
     def compute_initial_dim(self, first_seen: DF) -> DF:
-        """Assign IdProducto by dense_rank over (first_seen_ts, NombreProductoNorm)."""
+        """
+        Assign `IdProducto` by dense rank over (first_seen_ts, NombreProductoNorm).
+
+        Args:
+            first_seen (DF): DataFrame with `NombreProductoNorm` and `first_seen_ts`.
+
+        Returns:
+            DF: Dimension seed with
+                - IdProducto (int)
+                - NombreProducto (string)
+        """
         w_dense = Window.orderBy(
             F.col("first_seen_ts").asc_nulls_last(), F.col("NombreProductoNorm").asc()
         )
@@ -97,6 +160,13 @@ class GoldDimProductosProcessor(BaseProcessor):
         )
 
     def create_external_table(self, df_initial: DF) -> None:
+        """
+        Create/register the external Delta table and seed initial rows
+        (ordered by IdProducto, NombreProducto) if empty.
+
+        Args:
+            df_initial (DF): Seed rows with `IdProducto` and `NombreProducto`.
+        """
         logger.info(f"Creating external Delta table at LOCATION = {self.target_path}")
 
         cols_comment_sql = (
@@ -128,7 +198,12 @@ class GoldDimProductosProcessor(BaseProcessor):
             logger.info("Table already has data. Skipping initial load.")
 
     def merge_upsert_insert_only(self, df_new: DF) -> None:
-        """Insert new product names; ignore existing ones."""
+        """
+        Insert-only MERGE for new product names.
+
+        Args:
+            df_new (DF): New rows with `IdProducto` and `NombreProducto`.
+        """
         logger.info("Running MERGE (insert-only) into GOLD.dim_productos")
         delta_tgt = DeltaTable.forName(self.spark, self.target_fullname)
         (
@@ -141,7 +216,15 @@ class GoldDimProductosProcessor(BaseProcessor):
         )
 
     def process(self) -> None:
-        """Build dimension if missing; otherwise insert any new products."""
+        """
+        Orchestrate the GOLD build for `dim_productos`.
+
+        Workflow:
+            - Ensure schema, then read/join/normalize/filter/fix names.
+            - Compute first-seen and derive seed dimension.
+            - If table doesn't exist: create and load initial snapshot.
+            - Else: insert only newly observed products and set table properties.
+        """
         logger.info(f"Starting GOLD process for {self.target_fullname}")
         self.ensure_schema()
 

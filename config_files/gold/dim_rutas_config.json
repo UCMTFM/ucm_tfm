@@ -4,7 +4,7 @@
   "sink": { "schema": "gold", "table": "dim_rutas" },
   "lakehouse_storage_account_name": "staucmappinnovalakehouse",
   "lakehouse_container_name": "lakehouse",
-  "secret_scope": "akv-tfmappinnova",
+  "secret_scope": "akv-ucmappinnova",
   "lakehouse_secret_key_name": "lakehouse-stg-account-access-key",
   "table_properties": {
     "delta.autoOptimize.optimizeWrite": "true",

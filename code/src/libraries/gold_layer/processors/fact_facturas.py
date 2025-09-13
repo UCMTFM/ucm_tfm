@@ -1,6 +1,6 @@
 # fact_facturas.py
 """
-Builds <catalog>.gold.fact_facturas from silver.facturas (Anulado=false).
+Builds <catalog>.gold.fact_facturas from silver.facturas.
 """
 
 from delta.tables import DeltaTable
@@ -12,7 +12,19 @@ from .base import BaseProcessor
 
 
 class GoldFactFacturasProcessor(BaseProcessor):
-    """Invoice fact from silver.facturas. Resolves NumeroCliente (ID → name); MERGE by IdFactura."""
+    """
+    Invoice fact builder sourced from `silver.facturas`.
+
+    Workflow:
+        1. Read `silver.facturas` and construct a robust `Fecha` (fallback to `FechaCreacion`).
+        2. Normalize identifiers and customer name for FK resolution.
+        3. Cast numeric measures defensively and deduplicate by `IdFactura`.
+        4. Resolve `NumeroCliente` against `gold.dim_clientes` (ID first, then normalized name).
+        5. Create the GOLD table if missing and append the initial batch, or upsert by `IdFactura`.
+
+    Inherits from:
+        BaseProcessor: Catalog/schema helpers, storage connectivity, and table management.
+    """
 
     TABLE_COMMENT = (
         "Invoice fact from silver.facturas (Anulado=false). "
@@ -37,7 +49,17 @@ class GoldFactFacturasProcessor(BaseProcessor):
 
     @staticmethod
     def _safe(df, name: str, cast: str = None):
-        """Return column if present; otherwise a typed NULL literal."""
+        """
+        Return a column if present on `df`; otherwise a typed NULL literal.
+
+        Args:
+            df (DF): Source DataFrame to inspect.
+            name (str): Column name to retrieve.
+            cast (str, optional): Spark SQL type to cast to (e.g., "decimal(18,2)").
+
+        Returns:
+            Column: Existing `df[name]` (optionally cast) or `lit(NULL)` cast to `cast` or STRING.
+        """
         cols = set(df.columns)
         if name in cols:
             c = F.col(name)
@@ -46,11 +68,16 @@ class GoldFactFacturasProcessor(BaseProcessor):
 
     def build_source_fact(self) -> DF:
         """
-        Read silver.facturas and:
-          * build robust Fecha (Fecha | FechaCreacion)
-          * normalize identifiers and name
-          * cast measures defensively
-          * deduplicate by IdFactura, keeping latest by creation/Fecha
+        Read and prepare the base invoice dataset from `silver.facturas`.
+
+        Operations:
+            - Build `Fecha` using `Fecha` or `FechaCreacion` (to_date of coalesced timestamps).
+            - Keep `Identificacion_raw`, its canonical `Ident_clean`, and a normalized customer name.
+            - Cast monetary/measure fields with defensive types.
+            - Filter `Anulado = false` and deduplicate per `IdFactura` keeping the latest.
+
+        Returns:
+            DF: Prepared header-level DataFrame with the columns needed for FK resolution and merge.
         """
         src = self.spark.table(self.source_fullname)
 
@@ -109,9 +136,17 @@ class GoldFactFacturasProcessor(BaseProcessor):
 
     def attach_numero_cliente(self, base_df: DF) -> DF:
         """
-        Resolve FK NumeroCliente using:
-          - by identification (canonical)
-          - fallback by normalized name
+        Resolve `NumeroCliente` against `gold.dim_clientes`.
+
+        Matching strategy:
+            1) Join by canonicalized identification.
+            2) Fallback join by normalized customer name.
+
+        Args:
+            base_df (DF): Output of `build_source_fact`.
+
+        Returns:
+            DF: `base_df` projected to GOLD columns with `NumeroCliente` resolved when possible.
         """
         dim = self.spark.table(f"{self.catalog}.gold.dim_clientes").select(
             F.col("NumeroCliente").cast("int").alias("NumeroCliente"),
@@ -154,7 +189,15 @@ class GoldFactFacturasProcessor(BaseProcessor):
         )
 
     def create_external_table(self, df_initial: DF) -> None:
-        """Create table and append initial rows (only those with FK resolved)."""
+        """
+        Create/register the external Delta table and append the initial batch.
+
+        Notes:
+            - Only rows with a resolved `NumeroCliente` are appended.
+
+        Args:
+            df_initial (DF): Prepared DataFrame ready for GOLD projection.
+        """
         df_initial = df_initial.where(F.col("NumeroCliente").isNotNull())
         super().create_external_table(
             df_initial=df_initial,
@@ -178,7 +221,15 @@ class GoldFactFacturasProcessor(BaseProcessor):
         )
 
     def merge_upsert(self, df_upsert: DF) -> None:
-        """Upsert by IdFactura; prefer non-null incoming values via COALESCE."""
+        """
+        Upsert facts by `IdFactura`, preferring non-null incoming values via `COALESCE`.
+
+        Args:
+            df_upsert (DF): DataFrame with the GOLD projection to be merged.
+
+        Returns:
+            None
+        """
         df_upsert = df_upsert.where(F.col("NumeroCliente").isNotNull())
 
         delta_tgt = DeltaTable.forName(self.spark, self.target_fullname)
@@ -223,7 +274,18 @@ class GoldFactFacturasProcessor(BaseProcessor):
 
     # ------------------- MAIN -------------------
     def process(self) -> None:
-        """Validate dependency on dim_clientes, then build or upsert."""
+        """
+        End-to-end build/upsert for `gold.fact_facturas`.
+
+        Steps:
+            1) Ensure target schema exists and dependency `gold.dim_clientes` is readable.
+            2) Build the base header DataFrame and resolve `NumeroCliente`.
+            3) If the target table is missing: create it and append the initial batch.
+            4) Otherwise: perform `merge_upsert` by `IdFactura` and set table properties.
+
+        Returns:
+            None
+        """
         logger.info(f"Starting GOLD process for {self.target_fullname}")
         self.ensure_schema()
 
