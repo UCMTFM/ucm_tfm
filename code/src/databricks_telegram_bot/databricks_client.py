@@ -258,6 +258,7 @@ class DatabricksGenieClient:
         
         statement_response = query_result.statement_response
         logger.info(f"Statement response: {statement_response}")
+        logger.info(f"Statement response type: {type(statement_response)}")
         
         if not hasattr(statement_response, 'result') or not statement_response.result:
             logger.warning("Statement response has no result")
@@ -265,6 +266,7 @@ class DatabricksGenieClient:
         
         result_data = statement_response.result
         logger.info(f"Result data: {result_data}")
+        logger.info(f"Result data type: {type(result_data)}")
         
         # Extract data array
         if hasattr(result_data, 'data_array') and result_data.data_array:
@@ -273,16 +275,44 @@ class DatabricksGenieClient:
         else:
             logger.warning("No data array found in result")
         
-        # Extract column names from statement_response.result.manifest
-        if hasattr(result_data, 'manifest') and result_data.manifest:
-            if hasattr(result_data.manifest, 'schema') and result_data.manifest.schema:
-                columns = [col.name for col in result_data.manifest.schema.columns]
-                logger.info(f"Found columns: {columns}")
+        # Extract column names from statement_response.manifest (primary location)
+        columns_found = False
+        if hasattr(statement_response, 'manifest') and statement_response.manifest:
+            logger.info(f"Statement response manifest: {statement_response.manifest}")
+            logger.info(f"Statement response manifest type: {type(statement_response.manifest)}")
+            if hasattr(statement_response.manifest, 'schema') and statement_response.manifest.schema:
+                columns = [col.name for col in statement_response.manifest.schema.columns]
+                logger.info(f"Found columns from statement_response.manifest: {columns}")
                 response_data["result"]["columns"] = columns
+                columns_found = True
             else:
-                logger.warning("No schema found in result manifest")
+                logger.warning("No schema found in statement_response manifest")
         else:
-            logger.warning("No manifest found in result")
+            logger.warning("No manifest found in statement_response")
+        
+        # Fallback: try to get columns from result_data.manifest
+        if not columns_found:
+            if hasattr(result_data, 'manifest') and result_data.manifest:
+                logger.info(f"Result data manifest: {result_data.manifest}")
+                logger.info(f"Result data manifest type: {type(result_data.manifest)}")
+                if hasattr(result_data.manifest, 'schema') and result_data.manifest.schema:
+                    columns = [col.name for col in result_data.manifest.schema.columns]
+                    logger.info(f"Found columns from result_data.manifest (fallback): {columns}")
+                    response_data["result"]["columns"] = columns
+                    columns_found = True
+                else:
+                    logger.warning("No schema found in result_data manifest")
+            else:
+                logger.warning("No manifest found in result_data")
+        
+        if not columns_found:
+            logger.error("CRITICAL: Could not find column names in any location!")
+            logger.error(f"Statement response attributes: {dir(statement_response)}")
+            if hasattr(statement_response, 'manifest'):
+                logger.error(f"Manifest attributes: {dir(statement_response.manifest)}")
+            logger.error(f"Result data attributes: {dir(result_data)}")
+            if hasattr(result_data, 'manifest'):
+                logger.error(f"Result data manifest attributes: {dir(result_data.manifest)}")
         
         # Update summary
         if response_data["result"]["data"]:
