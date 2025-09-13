@@ -23,3 +23,9 @@ class SilverDatasets(StrEnum):
     FACTURAS = "facturas"
     DETALLE_NOTAS_CREDITO = "detalle_notas_credito"
     NOTAS_CREDITO = "notas_credito"
+
+
+class GoldDatasets(StrEnum):
+    DIM_CLIENTES = "dim_clientes"
+    DIM_RUTAS = "dim_rutas"
+    FACT_FACTURAS = "fact_facturas"
