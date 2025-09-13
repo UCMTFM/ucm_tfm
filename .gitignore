@@ -156,3 +156,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 *.DS_Store
+    
+# Confluent Cloud client.properties
+code/src/streaming/client.properties
+
