@@ -235,22 +235,39 @@ class StreamlitGenieChat:
                 if columns and data:
                     if isinstance(data[0], list):
                         # Array format - convert to DataFrame
-                        logger.info(f"Processing as array format with columns: {columns}")
-                        logger.info(f"Data sample: {data[:2] if len(data) >= 2 else data}")
-                        
+                        logger.info(
+                            f"Processing as array format with columns: {columns}"
+                        )
+                        logger.info(
+                            f"Data sample: {data[:2] if len(data) >= 2 else data}"
+                        )
+
                         # Ensure we have the right number of columns for the data
                         if len(columns) == len(data[0]):
                             df = pd.DataFrame(data, columns=columns)
-                            logger.info(f"Created DataFrame with proper column names: {list(df.columns)}")
+                            logger.info(
+                                f"Created DataFrame with proper column names: {list(df.columns)}"
+                            )
                         else:
-                            logger.warning(f"Column count mismatch: {len(columns)} columns vs {len(data[0])} data columns")
+                            logger.warning(
+                                f"Column count mismatch: {len(columns)} columns vs {len(data[0])} data columns"
+                            )
                             # Use available columns up to data width, pad with generic names if needed
                             data_width = len(data[0])
                             adjusted_columns = columns[:data_width]
                             if len(adjusted_columns) < data_width:
-                                adjusted_columns.extend([f"Column_{i + 1}" for i in range(len(adjusted_columns), data_width)])
+                                adjusted_columns.extend(
+                                    [
+                                        f"Column_{i + 1}"
+                                        for i in range(
+                                            len(adjusted_columns), data_width
+                                        )
+                                    ]
+                                )
                             df = pd.DataFrame(data, columns=adjusted_columns)
-                            logger.info(f"Created DataFrame with adjusted columns: {list(df.columns)}")
+                            logger.info(
+                                f"Created DataFrame with adjusted columns: {list(df.columns)}"
+                            )
 
                         # Convert string numbers to actual numeric types
                         for col in df.columns:
@@ -286,7 +303,9 @@ class StreamlitGenieChat:
                         # Create generic column names as last resort
                         num_cols = len(data[0]) if data else 0
                         columns = [f"Column_{i + 1}" for i in range(num_cols)]
-                        logger.warning(f"Created generic columns as fallback: {columns}")
+                        logger.warning(
+                            f"Created generic columns as fallback: {columns}"
+                        )
                         df = pd.DataFrame(data, columns=columns)
 
                         # Convert string numbers to actual numeric types
@@ -314,7 +333,9 @@ class StreamlitGenieChat:
                     else:
                         logger.warning("Could not infer data structure")
                 else:
-                    logger.warning(f"No data to display: data={bool(data)}, columns={bool(columns)}")
+                    logger.warning(
+                        f"No data to display: data={bool(data)}, columns={bool(columns)}"
+                    )
 
                 if df is not None:
                     logger.info(

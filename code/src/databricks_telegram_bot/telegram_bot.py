@@ -204,6 +204,7 @@ class DatabricksTelegramBot:
         # Send typing indicator
         self.bot.send_chat_action(message.chat.id, 'typing')
         
+        processing_message = None
         try:
             # Send initial response
             processing_message = self.bot.reply_to(message,
@@ -211,10 +212,20 @@ class DatabricksTelegramBot:
                 "This may take a few moments...")
             
             # Query Databricks Genie
+            logger.info(f"Querying Databricks Genie for user {user_id}: {question}")
             response = self.databricks_client.query_genie(question)
+            logger.info(f"Received response from Databricks Genie: {response}")
             
             # Format the response
-            formatted_response = self.databricks_client.format_genie_response(response)
+            logger.info("Formatting response for Telegram...")
+            try:
+                formatted_response = self.databricks_client.format_genie_response(response)
+                logger.info(f"Formatted response length: {len(formatted_response)}")
+            except Exception as format_error:
+                logger.error(f"Error formatting response: {format_error}")
+                # Fallback formatting - create a basic response
+                formatted_response = self._create_fallback_response(response)
+                logger.info(f"Using fallback response, length: {len(formatted_response)}")
             
             # Check if response is too long for Telegram
             if len(formatted_response) > 4096:
@@ -238,25 +249,85 @@ class DatabricksTelegramBot:
             
         except Exception as e:
             logger.error(f"Error processing query for user {user_id}: {e}")
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Error details: {repr(e)}")
+            
+            # Try to get more details about the error
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            
             error_message = (
                 f"❌ **Error processing your question:**\n\n"
-                f"```\n{str(e)}\n```\n\n"
+                f"**Question:** {question}\n\n"
+                f"**Error:** {str(e)}\n\n"
                 "Please try rephrasing your question or contact support if the issue persists."
             )
             
             try:
-                self.bot.edit_message_text(error_message, 
-                                         chat_id=message.chat.id, 
-                                         message_id=processing_message.message_id,
-                                         parse_mode='Markdown')
-            except:
-                self.bot.reply_to(message, error_message, parse_mode='Markdown')
+                if processing_message:
+                    self.bot.edit_message_text(error_message, 
+                                             chat_id=message.chat.id, 
+                                             message_id=processing_message.message_id,
+                                             parse_mode='Markdown')
+                else:
+                    self.bot.reply_to(message, error_message, parse_mode='Markdown')
+            except Exception as edit_error:
+                logger.error(f"Failed to edit/send error message: {edit_error}")
+                # Fallback to simple text message
+                try:
+                    simple_error = f"❌ Error: {str(e)}"
+                    self.bot.reply_to(message, simple_error)
+                except Exception as final_error:
+                    logger.error(f"Failed to send any error message: {final_error}")
     
     def _is_user_authorized(self, user_id: str) -> bool:
         """Check if user is authorized to use the bot"""
         if not self.config.allowed_users:
             return False
         return user_id in self.config.allowed_users
+    
+    def _create_fallback_response(self, response: dict) -> str:
+        """Create a basic fallback response when main formatting fails"""
+        try:
+            fallback_response = ""
+            
+            # Add explanation if available
+            explanation = response.get("explanation", "")
+            if explanation and explanation.strip():
+                fallback_response += f"**Response:** {explanation}\n\n"
+            
+            # Add SQL query if available
+            sql_query = response.get("sql_query", "")
+            if sql_query and sql_query.strip():
+                fallback_response += f"**SQL Query:**\n```sql\n{sql_query.strip()}\n```\n\n"
+            
+            # Add basic result info
+            result = response.get("result", {})
+            data = result.get("data", [])
+            columns = result.get("columns", [])
+            
+            if data:
+                fallback_response += f"**Results:** Found {len(data)} row(s) of data\n"
+                if columns:
+                    fallback_response += f"**Columns:** {', '.join(columns)}\n"
+                
+                # Show first few rows in a simple format
+                if len(data) <= 3:
+                    for i, row in enumerate(data, 1):
+                        fallback_response += f"Row {i}: {str(row)}\n"
+                else:
+                    fallback_response += f"Sample data: {str(data[0])}\n"
+                    fallback_response += f"... and {len(data) - 1} more rows\n"
+            
+            summary = result.get("summary", "")
+            if summary:
+                fallback_response += f"\n**Summary:** {summary}"
+            
+            return fallback_response.strip() if fallback_response.strip() else "Query completed but no formatted response available."
+            
+        except Exception as e:
+            logger.error(f"Error creating fallback response: {e}")
+            return f"Query completed. Error formatting response: {str(e)}"
     
     def start(self):
         """Start the bot"""

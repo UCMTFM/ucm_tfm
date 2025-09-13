@@ -159,4 +159,4 @@ cython_debug/
     
 # Confluent Cloud client.properties
 code/src/streaming/client.properties
-
+bot.pid
