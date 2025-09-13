@@ -26,7 +26,7 @@ def load_dataset_into_gold(dataset: GoldDatasets):
     )
 
 
-@task_group(group_id="load_datasets_into_bronze")
+@task_group(group_id="load_datasets_into_gold")
 def load_datasets_into_gold():
     load_dim_cliente = load_dataset_into_gold(GoldDatasets.DIM_CLIENTES)
     load_dim_rutas = load_dataset_into_gold(GoldDatasets.DIM_RUTAS)
