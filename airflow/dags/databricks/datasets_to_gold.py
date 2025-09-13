@@ -40,8 +40,8 @@ def load_datasets_into_gold():
         [
             load_dim_cliente,
             load_dim_rutas,
-            load_dim_productos,
         ],
+        load_dim_productos,
         load_fact_facturas,
         load_fact_detalle_facturas,
     )
