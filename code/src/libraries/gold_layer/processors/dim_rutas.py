@@ -7,9 +7,24 @@ from loguru import logger
 
 from .base import BaseProcessor
 
-
 class GoldDimRutasProcessor(BaseProcessor):
-    """Route dimension built from silver.facturas with stable Ruta <N> labels by idRuta."""
+    """
+    Processor for building the GOLD route dimension (`<catalog>.gold.dim_rutas`)
+    from the Silver source `silver.facturas`.
+
+    Workflow:
+        1. Reads distinct `idRuta` values from the Silver layer.
+        2. If the target table is missing or stale, creates the external Delta table
+           at the configured LOCATION and seeds human-friendly names as Ruta <N>
+           ordered deterministically by `idRuta`.
+        3. If the table exists, detects newly seen `idRuta`, computes the next sequence
+           starting from the current maximum, and appends them via an insert-only MERGE.
+        4. Applies optional table properties specified in the configuration.
+
+    Inherits from:
+        BaseProcessor: Provides Spark/DBFS handles and shared helpers for schema
+        management and Delta operations used by this processor.
+    """ 
 
     TABLE_COMMENT = "Routes dimension (gold). Built from silver.facturas with stable numbering by idRuta."
 
@@ -20,11 +35,23 @@ class GoldDimRutasProcessor(BaseProcessor):
 
     def process(self) -> None:
         """
-        Build/refresh flow:
-          1) Read distinct idRuta
-          2) If table is missing, create and seed numbering
-          3) Otherwise, append new idRuta with the next sequence
-        """
+        Orchestrate the build/refresh of `<catalog>.gold.dim_rutas`.
+
+        Steps:
+            1) Ensure target schema exists.
+            2) Read distinct route identifiers from the Silver source.
+            3) If the table does not exist (or is stale):
+                - Compute initial numbering and create/register the external table.
+                - Seed rows with `(idRuta, nombreRuta)`.
+            4) Else (table exists):
+                - Find new `idRuta` not present in the target.
+                - Compute next sequence from current max and build Ruta <N>.
+                - MERGE insert-only the new routes.
+            5) Apply optional table properties from configuration.
+
+        Returns:
+            None
+        """  
         logger.info(f"Starting GOLD build for {self.target_fullname}")
         self.ensure_schema()
 

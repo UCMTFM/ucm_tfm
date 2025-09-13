@@ -13,7 +13,25 @@ from .base import BaseProcessor
 
 class GoldFactDetalleFacturasProcessor(BaseProcessor):
     """
-    Invoice line items from silver.detalle_facturas; late-binding IdProducto; idempotent via RowHash
+    GOLD fact table for invoice line items sourced from `silver.detalle_facturas`,
+    joined to `silver.facturas` to exclude voided invoices (Anulado = false). It
+    performs late-binding of `IdProducto` by normalized product name against
+    `gold.dim_productos`, and guarantees idempotence via a deterministic `RowHash`.
+
+    Workflow:
+        1) Read invoice detail lines and join with invoice headers to filter `Anulado = false`.
+        2) Normalize product names (same pipeline as the product dimension) and apply targeted fixes.
+        3) Map lines to `gold.dim_productos` by normalized name (late-binding of `IdProducto`).
+        4) Compute `RowHash` over the business fields to make the pipeline idempotent.
+        5) If table does not exist, create/register external Delta and append the initial batch.
+        6) Otherwise, MERGE:
+             - NOT MATCHED → INSERT full row
+             - MATCHED     → UPDATE `IdProducto = coalesce(t.IdProducto, s.IdProducto)`
+        7) Apply optional table properties.
+
+    Inherits from:
+        BaseProcessor: configuration handling, storage connectivity, Delta helpers,
+        and common utility functions (normalization, table existence checks, etc.).
     """
 
     TABLE_COMMENT = (
@@ -37,8 +55,19 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
 
     def _map_name_fixes(self, df: DF, col_in: str, col_out: str) -> DF:
         """
-        Apply the same targeted fixes as the product dimension and re-normalize.
-        We DO NOT filter keywords (OFERTA/PROMO/etc.) to keep all lines in the fact.
+        Apply targeted product-name fixes (aligned with the product dimension) and re-normalize.
+
+        Notes:
+            Unlike the dimension, this fact does not drop marketing-like keywords; it keeps
+            all detail lines intact.
+
+        Args:
+            df (DF): Input DataFrame containing a normalized product name column.
+            col_in (str): Name of the input normalized column to fix.
+            col_out (str): Name of the output normalized column after fixes.
+
+        Returns:
+            DF: DataFrame with the corrected and re-normalized product name in `col_out`.
         """
         c = F.col(col_in)
         fixed = df.select(
@@ -50,10 +79,19 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
             .alias(col_out),
             *[x for x in df.columns if x != col_in],
         )
-        return fixed.withColumn(col_out, self.normalize_str(F.col(col_out)))
+        return fixed.withColumn(col_out, self.normalize_str(F.col(col_out))) 
 
     def read_source(self) -> DF:
-        """Join detail with header to exclude Anulado; select required fields."""
+        """
+        Read `silver.detalle_facturas` and join with `silver.facturas` to exclude voided invoices.
+
+        Returns:
+            DF: Detail lines with required numeric fields casted and only rows where
+                `Anulado = false`. Columns include:
+                IdFactura, NombreProducto, Cantidad, ValorUnitario, ValorDescuento,
+                PorcentajeIva, ValorIva, PorcentajeImpuestoSaludable, ValorImpuestoSaludable,
+                Subtotal, Total.
+        """
         cat = self.catalog
 
         d = self.spark.table(f"{cat}.silver.detalle_facturas").select(
@@ -64,9 +102,7 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
             F.col("ValorDescuento").cast("double").alias("ValorDescuento"),
             F.col("PorcentajeIva").cast("double").alias("PorcentajeIva"),
             F.col("ValorIva").cast("double").alias("ValorIva"),
-            F.col("PorcentajeImpuestoSaludable")
-            .cast("double")
-            .alias("PorcentajeImpuestoSaludable"),
+            F.col("PorcentajeImpuestoSaludable").cast("double").alias("PorcentajeImpuestoSaludable"),
             F.col("ValorImpuestoSaludable").cast("double").alias("ValorImpuestoSaludable"),
             F.col("Subtotal").cast("double").alias("Subtotal"),
             F.col("Total").cast("double").alias("Total"),
@@ -78,30 +114,53 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
         )
 
         return (
-            d.join(f, on="IdFactura", how="inner")
-            .where(F.col("Anulado") == F.lit(False))
-            .drop("Anulado")
-        )
+            d.join(f, on="IdFactura", how="inner").where(F.col("Anulado") == F.lit(False)).drop("Anulado")
+        )  
 
     def add_product_normalization(self, src: DF) -> DF:
-        """Add NombreProductoNorm with the same normalization pipeline as the dimension."""
+        """
+        Add a normalized product name column using the same baseline normalization as the dimension.
+
+        Args:
+            src (DF): Source DataFrame returned by :meth:`read_source`.
+
+        Returns:
+            DF: DataFrame with an extra `NombreProductoNorm` column normalized and fixed.
+        """
         norm = src.withColumn("NombreProductoNorm", self.normalize_str(F.col("NombreProducto")))
-        return self._map_name_fixes(norm, col_in="NombreProductoNorm", col_out="NombreProductoNorm")
+        return self._map_name_fixes(norm, col_in="NombreProductoNorm", col_out="NombreProductoNorm")  
 
     def map_to_dim_product(self, df: DF) -> DF:
-        """Left join against gold.dim_productos by normalized name."""
+        """
+        Resolve `IdProducto` by joining to `gold.dim_productos` on normalized product name.
+
+        Args:
+            df (DF): DataFrame with `NombreProductoNorm` (from :meth:`add_product_normalization`).
+
+        Returns:
+            DF: DataFrame with `IdProducto` (nullable when no match in the dimension).
+        """
         dim = self.spark.table(f"{self.catalog}.gold.dim_productos").select(
             F.col("IdProducto").cast("int").alias("IdProducto"),
             F.col("NombreProducto").alias("NombreProductoDim"),
         )
-        return df.join(dim, df["NombreProductoNorm"] == dim["NombreProductoDim"], how="left").drop(
-            "NombreProductoDim"
-        )
+        return df.join(
+            dim, df["NombreProductoNorm"] == dim["NombreProductoDim"], how="left"
+        ).drop("NombreProductoDim")  
 
     def add_row_hash(self, df: DF) -> DF:
         """
-        Deterministic hash over business fields of the detail line.
-        It deliberately excludes IdProducto or any normalization-only column.
+        Compute a deterministic hash (`RowHash`) over the business fields of each line.
+
+        Design:
+            The hash excludes `IdProducto` and any normalization-only columns to ensure
+            idempotence regardless of late-binding or normalization changes.
+
+        Args:
+            df (DF): DataFrame containing all business fields to be hashed.
+
+        Returns:
+            DF: DataFrame with an additional `RowHash` column.
         """
         return df.withColumn(
             "RowHash",
@@ -122,10 +181,27 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
                 ),
                 256,
             ),
-        )
+        )  
 
     def build_fact_df(self, src: DF) -> DF:
-        """Full pipeline to final GOLD shape (includes RowHash)."""
+        """
+        Full pipeline from raw detail lines to the final GOLD schema.
+
+        Steps:
+            1) Normalize and fix product names.
+            2) Map to product dimension for `IdProducto`.
+            3) Add `RowHash`.
+            4) Project final columns and drop duplicates by `RowHash`.
+
+        Args:
+            src (DF): Source DataFrame as returned by :meth:`read_source`.
+
+        Returns:
+            DF: DataFrame with columns:
+                RowHash, IdFactura, IdProducto, Cantidad, ValorUnitario, ValorDescuento,
+                PorcentajeIva, ValorIva, PorcentajeImpuestoSaludable, ValorImpuestoSaludable,
+                Subtotal, Total.
+        """
         with_norm = self.add_product_normalization(src)
         with_pid = self.map_to_dim_product(with_norm)
         with_hash = self.add_row_hash(with_pid)
@@ -144,10 +220,15 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
             "Subtotal",
             "Total",
         ]
-        return with_hash.select(*cols).dropDuplicates(["RowHash"])
+        return with_hash.select(*cols).dropDuplicates(["RowHash"])  
 
     def create_external_table(self, df_initial: DF) -> None:
-        """Register the external table and append initial batch."""
+        """
+        Register the external Delta table (if missing) and append the initial batch.
+
+        Args:
+            df_initial (DF): Fully shaped DataFrame from :meth:`build_fact_df`.
+        """
         logger.info(f"Creating/registering external Delta table at LOCATION = {self.target_path}")
         super().create_external_table(
             df_initial=df_initial,
@@ -167,17 +248,20 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
                 "Subtotal",
                 "Total",
             ],
-        )
+        )  
 
     def merge_upsert(self, df_new: DF) -> None:
         """
-        Insert-only by RowHash + late-binding of IdProducto:
-          - when NOT MATCHED: INSERT
-          - when MATCHED: UPDATE IdProducto = coalesce(t.IdProducto, s.IdProducto)
+        Idempotent merge with late-binding of `IdProducto`.
+
+        Behavior:
+            - NOT MATCHED → INSERT full row.
+            - MATCHED     → UPDATE `IdProducto = coalesce(t.IdProducto, s.IdProducto)`.
+
+        Args:
+            df_new (DF): New/pending rows to upsert, already shaped like the target table.
         """
-        logger.info(
-            "Running MERGE (insert + late-binding IdProducto) into GOLD.fact_detalle_facturas"
-        )
+        logger.info("Running MERGE (insert + late-binding IdProducto) into GOLD.fact_detalle_facturas")
         delta_tgt = DeltaTable.forName(self.spark, self.target_fullname)
 
         (
@@ -201,10 +285,22 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
                 }
             )
             .execute()
-        )
+        )  
 
     def process(self) -> None:
-        """Build initial load or perform incremental insert + late-binding update."""
+        """
+        Orchestrate initial build or incremental upsert with late-binding.
+
+        Steps:
+            1) Ensure schema exists.
+            2) Read/prepare source and build the target-shaped DataFrame.
+            3) If target table is missing → create and append initial batch.
+            4) Else → compute pending `RowHash` rows and MERGE them.
+            5) Apply table properties if configured.
+
+        Returns:
+            None
+        """
         logger.info(f"Starting GOLD process for {self.target_fullname}")
         self.ensure_schema()
 
@@ -228,4 +324,4 @@ class GoldFactDetalleFacturasProcessor(BaseProcessor):
 
         self.merge_upsert(pending)
         self.set_table_properties(self.table_properties)
-        logger.info("Incremental merge completed successfully.")
+        logger.info("Incremental merge completed successfully.")  

@@ -14,8 +14,25 @@ from .base import BaseProcessor
 
 class GoldDimClientesProcessor(BaseProcessor):
     """
-    Customer dimension (gold). One row per ID-group; keeps first NumeroCliente and representative
-    name.
+    Customer dimension (gold) built from `silver.facturas`.
+
+    Workflow:
+        1. Read the minimal fields from the Silver facts required to form groups
+           (normalized customer name and raw ID) and compute a grouping key.
+        2. Determine, per group, the first-seen timestamp and a deterministic
+           representative row.
+        3. Assign a stable `NumeroCliente` using the order of first appearance
+           (dense ranking over first_seen_ts, group_key).
+        4. If the table does not exist, create it and seed the initial snapshot.
+        5. If the table exists, append only newly seen representative names
+           while preserving previously assigned numbers.
+
+    Inherits from:
+        BaseProcessor: utilities for Spark/Delta operations, configuration, and I/O.
+
+    Table semantics:
+        - One row per “ID-group” (canon of identification or normalized name).
+        - `NumeroCliente` is append-only and stable once assigned.
     """
 
     TABLE_COMMENT = (
@@ -29,7 +46,23 @@ class GoldDimClientesProcessor(BaseProcessor):
     )
 
     def read_base(self) -> DF:
-        """Read minimal fields and build group_key."""
+        """
+        Read minimal fields from source and build `group_key`.
+
+        Source:
+            `<catalog>.<sources.main_schema>.<sources.main_table>` (from config).
+
+        Filtering:
+            - Keep only non-annulled rows and non-null identifiers / names.
+
+        Returns:
+            DF: Columns
+                - Identificacion (string, raw)
+                - Identificacion_clean (string, canonical for tie-breaks)
+                - NombreCliente (string, normalized core)
+                - ts_creacion (timestamp, first-seen reference)
+                - group_key (string, grouping key from ID or normalized name)
+        """
         f = self.spark.table(self.source_fullname).select(
             F.col("Identificacion").cast("string").alias("Identificacion_raw"),
             self.normalize_str_core(F.col("RazonSocialCliente")).alias("NombreCliente"),
@@ -59,13 +92,34 @@ class GoldDimClientesProcessor(BaseProcessor):
         )
 
     def compute_first_seen_per_group(self, base: DF) -> DF:
-        """Earliest timestamp per group_key."""
+        """
+        Compute first appearance timestamp per group.
+
+        Args:
+            base (DF): Output of `read_base()` including `group_key` and `ts_creacion`.
+
+        Returns:
+            DF: Columns
+                - group_key
+                - first_seen_ts (min(ts_creacion) per group_key)
+        """
         return base.groupBy("group_key").agg(F.min("ts_creacion").alias("first_seen_ts"))
 
     def compute_rep_row_per_group(self, base: DF) -> DF:
         """
-        Representative row (first observed) per group_key.
-        Order by: ts_creacion, Identificacion_clean, Identificacion, NombreCliente.
+        Pick a deterministic representative row per `group_key`.
+
+        Ordering (ascending):
+            ts_creacion, Identificacion_clean, Identificacion, NombreCliente.
+
+        Args:
+            base (DF): Output of `read_base()`.
+
+        Returns:
+            DF: Columns
+                - group_key
+                - Identificacion_rep
+                - NombreCliente_rep
         """
         w = Window.partitionBy("group_key").orderBy(
             F.col("ts_creacion").asc(),
@@ -84,7 +138,21 @@ class GoldDimClientesProcessor(BaseProcessor):
         )
 
     def compute_initial_dim(self, first_seen_grp: DF, rep_grp: DF) -> DF:
-        """Assign NumeroCliente via dense_rank over (first_seen_ts, group_key)."""
+        """
+        Assign `NumeroCliente` by first-seen order and project representative fields.
+
+        Args:
+            first_seen_grp (DF): Output of `compute_first_seen_per_group`.
+            rep_grp (DF): Output of `compute_rep_row_per_group`.
+
+        Returns:
+            DF: Columns
+                - NumeroCliente (int, dense_rank over first_seen_ts + group_key)
+                - Identificacion (from representative row)
+                - NombreCliente (from representative row)
+                - first_seen_ts
+                - group_key
+        """
         w_dense = Window.orderBy(F.col("first_seen_ts").asc(), F.col("group_key").asc())
         numbered = first_seen_grp.withColumn("NumeroCliente", F.dense_rank().over(w_dense)).select(
             "group_key", "NumeroCliente", "first_seen_ts"
@@ -99,7 +167,19 @@ class GoldDimClientesProcessor(BaseProcessor):
         )
 
     def create_external_table(self, df_initial: DF) -> None:
-        """Publish final columns; extra name dedupe for safety."""
+        """
+        Create/register the Delta table (if missing) and perform initial load.
+
+        Behavior:
+            - Publishes final columns (NumeroCliente, Identificacion, NombreCliente).
+            - Extra deduplication by `NombreCliente` for safety before seeding.
+
+        Args:
+            df_initial (DF): Output of `compute_initial_dim` to seed the table.
+
+        Returns:
+            None
+        """
         df_initial = df_initial.select(
             "NumeroCliente", "Identificacion", "NombreCliente"
         ).dropDuplicates(["NombreCliente"])
@@ -111,7 +191,20 @@ class GoldDimClientesProcessor(BaseProcessor):
         )
 
     def merge_insert_new_names(self, df_new: DF) -> None:
-        """Insert new representative names (one per group_key)."""
+        """
+        Insert-only MERGE for newly seen representative names.
+
+        Notes:
+            - Within each `group_key` only the first (earliest) candidate is kept.
+            - Deduplicates by `NombreCliente` before merging into target.
+
+        Args:
+            df_new (DF): Candidate rows with columns
+                NumeroCliente, Identificacion, NombreCliente, first_seen_ts, group_key.
+
+        Returns:
+            None
+        """
         logger.info(
             "Running MERGE (insert-only by representative NombreCliente) into GOLD.dim_clientes"
         )
@@ -145,7 +238,19 @@ class GoldDimClientesProcessor(BaseProcessor):
         )
 
     def process(self) -> None:
-        """Create table if missing; otherwise append newly seen groups."""
+        """
+        Orchestrate the GOLD build for `dim_clientes`.
+
+        Flow:
+            - Ensure schema exists.
+            - Read base, compute first-seen timestamps and representative rows.
+            - If table is missing/stale: create and seed the initial snapshot.
+            - Else: append only newly seen representative names (insert-only MERGE),
+                    preserving existing numbers.
+
+        Returns:
+            None
+        """
         logger.info(f"Starting GOLD build for {self.target_fullname}")
         self.ensure_schema()
 

@@ -4,7 +4,6 @@ Builds <catalog>.gold.dim_ubicaciones from silver.facturas.
 (Phase A: NumeroCliente + Lat/Long; Phase B: geo enrichment from local shapefiles.)
 """
 
-
 from delta.tables import DeltaTable
 from loguru import logger
 from pyspark.sql import DataFrame as DF
@@ -15,7 +14,27 @@ from .base import BaseProcessor
 
 
 class GoldDimUbicacionesProcessor(BaseProcessor):
-    """Location dimension from silver.facturas; Phase A (Lat/Long) + Phase B (admin geo fields)"""
+    """
+    GOLD dimension of locations derived from `silver.facturas`.
+
+    Workflow:
+        Phase A (build & inserts):
+            1) Read base facts and build `group_key`.
+            2) Compute first-seen timestamp per group and the representative row.
+            3) Assign a stable `NumeroCliente` (dense rank by first seen).
+            4) Project representative coordinates (Latitud/Longitud).
+            5) Create external Delta table (if missing) and seed rows
+               with admin columns as NULL.
+            6) Incrementally insert new groups (insert-only MERGE).
+
+        Phase B (geo enrichment):
+            7) For rows with valid coordinates, enrich Departamento,
+               Municipio, Cod_DANE, Distrito, Barrio using local layers.
+            8) Upsert admin attributes with COALESCE updates.
+
+    Inherits from:
+        BaseProcessor: catalog/storage helpers, config, and Spark session.
+    """
 
     TABLE_COMMENT = (
         "Locations dimension (gold). Same NumeroCliente logic; "
@@ -34,7 +53,15 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
     )
 
     def read_base(self) -> DF:
-        """Read minimal fields required to compute group_key and representative coordinates."""
+        """
+        Read minimal source fields and build a normalized grouping key.
+
+        Returns:
+            DF: Columns
+                - Identificacion (raw), Identificacion_clean (tie-break canon),
+                  NombreCliente (normalized core), ts_creacion, Latitud, Longitud,
+                  group_key (clean ID if present, else normalized name).
+        """
         f = self.spark.table(self.source_fullname).select(
             F.col("Identificacion").cast("string").alias("Identificacion_raw"),
             self.normalize_str_core(F.col("RazonSocialCliente")).alias("NombreCliente"),
@@ -68,11 +95,31 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
         )
 
     def compute_first_seen_per_group(self, base: DF) -> DF:
-        """First appearance timestamp per group_key."""
+        """
+        Compute earliest observation timestamp per group.
+
+        Args:
+            base (DF): Output from :meth:`read_base`.
+
+        Returns:
+            DF: Columns `group_key`, `first_seen_ts`.
+        """
         return base.groupBy("group_key").agg(F.min("ts_creacion").alias("first_seen_ts"))
 
     def compute_rep_row_per_group(self, base: DF) -> DF:
-        """Representative row per group_key with deterministic order; carry Lat/Long."""
+        """
+        Select a deterministic representative row per group.
+
+        Ordering:
+            ts_creacion, Identificacion_clean, Identificacion, NombreCliente.
+
+        Args:
+            base (DF): Output from :meth:`read_base`.
+
+        Returns:
+            DF: Columns `group_key`, `Identificacion_rep`, `NombreCliente_rep`,
+                `Latitud_rep`, `Longitud_rep`.
+        """
         w = Window.partitionBy("group_key").orderBy(
             F.col("ts_creacion").asc(),
             F.col("Identificacion_clean").asc(),
@@ -92,7 +139,17 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
         )
 
     def compute_initial_dim(self, first_seen_grp: DF, rep_grp: DF) -> DF:
-        """Assign NumeroCliente and project representative coordinates."""
+        """
+        Assign `NumeroCliente` and project representative coordinates.
+
+        Args:
+            first_seen_grp (DF): Earliest timestamp per group.
+            rep_grp (DF): Representative row per group (Lat/Long included).
+
+        Returns:
+            DF: Columns `NumeroCliente`, `Identificacion`, `NombreCliente`,
+                `Latitud`, `Longitud`, `first_seen_ts`, `group_key`.
+        """
         w_dense = Window.orderBy(F.col("first_seen_ts").asc(), F.col("group_key").asc())
         numbered = first_seen_grp.withColumn("NumeroCliente", F.dense_rank().over(w_dense)).select(
             "group_key", "NumeroCliente", "first_seen_ts"
@@ -111,7 +168,16 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
     # -------------------- TABLE CREATE (Phase A) --------------------
     def create_external_table(self, df_initial: DF) -> None:
         """
-        Create table and seed rows with admin columns set to NULL; drop rows without coordinates.
+        Create/register the external Delta table and seed rows.
+
+        Behavior:
+            - Deduplicate by `NombreCliente`.
+            - Initialize admin columns to NULL.
+            - Drop rows without coordinates.
+            - Delegate physical creation to BaseProcessor with preserved DDL.
+
+        Args:
+            df_initial (DF): Output from :meth:`compute_initial_dim`.
         """
         df_initial = df_initial.dropDuplicates(["NombreCliente"])
         df_initial = (
@@ -149,74 +215,76 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
         )
 
     # -------------------- MERGE (insert-only) Phase A --------------------
-    def merge_insert_new(self, df_new: DF) -> None:
-        """Insert new NumeroCliente rows (admin columns set to NULL)."""
+    def merge_insert_new(self, df_to_insert: DF) -> None:
+        """
+        Insert-only MERGE on `NumeroCliente`.
+
+        Args:
+            df_to_insert (DF): Rows with final columns ready for insert:
+                NumeroCliente, Latitud, Longitud, Cod_DANE, Departamento, Municipio, Distrito, Barrio.
+
+        Returns:
+            None
+        """
         logger.info("Running MERGE (insert-only by NumeroCliente) into GOLD.dim_ubicaciones")
 
-        from pyspark.sql.window import Window
-
-        df_new = (
-            df_new.withColumn(
-                "rn",
-                F.row_number().over(
-                    Window.partitionBy("group_key").orderBy(
-                        F.col("first_seen_ts").asc(), F.col("NumeroCliente").asc()
-                    )
-                ),
-            )
-            .where(F.col("rn") == 1)
-            .drop("rn")
-            .dropDuplicates(["NombreCliente"])
-            .withColumn("Cod_DANE", F.lit(None).cast("string"))
-            .withColumn("Departamento", F.lit(None).cast("string"))
-            .withColumn("Municipio", F.lit(None).cast("string"))
-            .withColumn("Distrito", F.lit(None).cast("string"))
-            .withColumn("Barrio", F.lit(None).cast("string"))
-            .where(F.col("Latitud").isNotNull() & F.col("Longitud").isNotNull())
-            .select(
-                "NumeroCliente",
-                "Latitud",
-                "Longitud",
-                "Cod_DANE",
-                "Departamento",
-                "Municipio",
-                "Distrito",
-                "Barrio",
-            )
-        )
+        cols = ["NumeroCliente", "Latitud", "Longitud",
+                "Cod_DANE", "Departamento", "Municipio", "Distrito", "Barrio"]
+        df_to_insert = df_to_insert.select(*cols)
 
         delta_tgt = DeltaTable.forName(self.spark, self.target_fullname)
         (
             delta_tgt.alias("t")
-            .merge(df_new.alias("s"), "t.NumeroCliente = s.NumeroCliente")
-            .whenNotMatchedInsert(
-                values={
-                    "NumeroCliente": "s.NumeroCliente",
-                    "Latitud": "s.Latitud",
-                    "Longitud": "s.Longitud",
-                    "Cod_DANE": "s.Cod_DANE",
-                    "Departamento": "s.Departamento",
-                    "Municipio": "s.Municipio",
-                    "Distrito": "s.Distrito",
-                    "Barrio": "s.Barrio",
-                }
-            )
+            .merge(df_to_insert.alias("s"), "t.NumeroCliente = s.NumeroCliente")
+            .whenNotMatchedInsert(values={
+                "NumeroCliente": "s.NumeroCliente",
+                "Latitud":       "s.Latitud",
+                "Longitud":      "s.Longitud",
+                "Cod_DANE":      "s.Cod_DANE",
+                "Departamento":  "s.Departamento",
+                "Municipio":     "s.Municipio",
+                "Distrito":      "s.Distrito",
+                "Barrio":        "s.Barrio",
+            })
             .execute()
         )
 
     def _read_json_dbfs(self, path: str) -> dict:
-        """Small helper to read JSON config from DBFS."""
+        """
+        Read a small JSON file from DBFS.
+
+        Args:
+            path (str): dbfs:/ path to JSON.
+
+        Returns:
+            dict: Parsed JSON content.
+        """
         raw = self.dbutils.fs.head(path, 1024 * 1024)
         import json as _json
 
         return _json.loads(raw)
 
     def _workspace_geo_base(self) -> str:
+        """
+        Base folder for local geospatial layers stored in Workspace Files.
+
+        Returns:
+            str: Absolute path under /Workspace/...
+        """
         return "/Workspace/Shared/geospatial_stage"
 
     @staticmethod
     def _zfill_or_none(x, width):
-        """Zero-pad codes while being robust to NaNs and 'float-like' strings."""
+        """
+        Zero-pad codes while being robust to NaNs and float-like strings.
+
+        Args:
+            x: Value to format.
+            width (int): Target string width.
+
+        Returns:
+            str | None: Zero-padded string or None if missing.
+        """
         import pandas as _pd
 
         if _pd.isna(x):
@@ -230,7 +298,15 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
         return s.zfill(width)
 
     def _load_layer_local(self, rel_path: str):
-        """Load a local (workspace) vector layer with EPSG:4326 geometry."""
+        """
+        Load a local vector layer and ensure CRS is EPSG:4326.
+
+        Args:
+            rel_path (str): Relative path under :meth:`_workspace_geo_base`.
+
+        Returns:
+            GeoDataFrame: Layer geometry and attributes.
+        """
         import os
 
         import geopandas as gpd
@@ -247,8 +323,19 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
 
     def _apply_local_layer(self, pts, layer_conf: dict, out_col: str):
         """
-        Fill a textual admin attribute (Distrito, Barrio) from a local polygon layer,
-        restricted by candidate city names or Cod_DANE when provided in config.
+        Fill a textual admin attribute from a local polygon layer.
+
+        Scope restriction:
+            Use optional `municipio_match` (patterns) and/or `cod_dane_match`
+            from config to limit spatial joins.
+
+        Args:
+            pts (GeoDataFrame): Points with optional admin columns.
+            layer_conf (dict): Layer path and name field config.
+            out_col (str): Output column to populate (e.g., 'Distrito', 'Barrio').
+
+        Returns:
+            GeoDataFrame: Same frame with `out_col` updated where applicable.
         """
         import geopandas as gpd
         import pandas as pd
@@ -303,8 +390,14 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
 
     def _enrich_geospatial_pdf(self, pdf):
         """
-        Enrich a pandas DataFrame [NumeroCliente, Latitud, Longitud] with:
-        Departamento, Municipio, Cod_DANE, Distrito, Barrio.
+        Enrich a pandas DataFrame with administrative attributes.
+
+        Input columns:
+            NumeroCliente, Latitud, Longitud.
+
+        Returns:
+            pandas.DataFrame: Columns
+                NumeroCliente, Departamento, Municipio, Cod_DANE, Distrito, Barrio.
         """
         import os
 
@@ -394,8 +487,13 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
 
     def _phase_b_update(self, sdf_scope: DF) -> None:
         """
-        Run geo enrichment for provided scope (NumeroCliente, Latitud, Longitud) and
-        upsert enriched attributes into the Delta target using COALESCE updates.
+        Geo-enrich a Spark scope and update admin attributes by COALESCE MERGE.
+
+        Args:
+            sdf_scope (DF): Must contain NumeroCliente, Latitud, Longitud.
+
+        Returns:
+            None
         """
         if self._df_is_empty(sdf_scope):
             logger.info("Phase B: nothing to enrich (empty scope).")
@@ -447,7 +545,16 @@ class GoldDimUbicacionesProcessor(BaseProcessor):
         logger.info(f"Phase B: updated {sdf_upd.count()} rows with geo attributes.")
 
     def process(self) -> None:
-        """Build initial table (Phase A + B) or perform incremental inserts + enrichment."""
+        """
+        Orchestrate the full GOLD flow.
+
+        Behavior:
+            - If table is absent/stale → initial Phase A load + Phase B enrichment over missing admins.
+            - Else → incremental insert of new groups + targeted Phase B on new rows.
+
+        Returns:
+            None
+        """
         logger.info(f"Starting GOLD process for {self.target_fullname}")
         self.ensure_schema()
 
