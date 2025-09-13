@@ -22,7 +22,6 @@ These tests are designed to be fast, isolated, and cover both success
 and error paths for key consumer functionalities.
 """
 
-
 def test_read_config_parses_properties(tmp_path):
     """
     Ensures read_config() correctly parses a .properties-style file:
