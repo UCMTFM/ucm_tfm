@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from streaming import producer as mod
 
-
 """
 A minimal pytest suite for the streaming.producer module.
 Tests include:

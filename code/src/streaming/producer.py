@@ -12,9 +12,20 @@ from typing import List, Tuple, Dict
 import requests
 from confluent_kafka import Producer
 
+"""
+Delivery Simulation Producer → Kafka.
+
+Simulates delivery driver location updates and streams them as JSON events
+to a Kafka topic at regular intervals. Routes are generated using OSRM,
+and each driver runs in its own thread with configurable speed and interval.
+
+Configuration is loaded from a .properties file (Kafka client config),
+and arguments control the number of drivers, speed, interval, topic, etc.
+
+Intended for use with streaming pipelines (e.g., Power BI dashboards or Kafka consumers).
+"""
 
 # Configuration & Kafka Setup
-
 def read_config(path: str) -> Dict[str, str]:
     """
     Reads a .properties configuration file (key=value per line).
